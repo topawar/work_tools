@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>任务详情</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      .page-header { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+      .card-box { max-width: 900px; }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <div class="container">
+      <div class="page-header">
+        <h3>任务 #{{ job.id }}（{{ job.job_type }}）</h3>
+        <div>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'job_list' %}">返回列表</a>
+          <form method="post" action="{% url 'job_delete' job.id %}" style="display:inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" {% if job.status == 'running' %}disabled{% endif %}>删除</button>
+          </form>
+          <form method="post" action="{% url 'job_fail' job.id %}" style="display:inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-warning" {% if job.status != 'running' %}disabled{% endif %}>标记失败</button>
+          </form>
+        </div>
+      </div>
+      <div class="card card-box">
+        <div class="card-body">
+          <div class="mb-2">
+            状态：
+            {% if job.status == 'success' %}
+            <span class="badge text-bg-success">{{ job.status }}</span>
+            {% elif job.status == 'failed' %}
+            <span class="badge text-bg-danger">{{ job.status }}</span>
+            {% elif job.status == 'running' %}
+            <span class="badge text-bg-warning">{{ job.status }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ job.status }}</span>
+            {% endif %}
+          </div>
+          <div class="progress" style="height: 22px;">
+            <div id="bar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+          </div>
+          <div class="mt-2">进度：<span id="prog">{{ job.done }}/{{ job.total }}</span></div>
+          <div class="mt-2">信息：<span id="msg">{{ job.message }}</span></div>
+          <div class="mt-2 text-danger">错误：<span id="err">{{ job.error }}</span></div>
+          <div class="mt-2">文件：<span>{{ job.filename }}</span></div>
+          <div class="mt-2">更新时间：<span id="upd">{{ job.updated_at }}</span></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const jobId = {{ job.id }};
+      async function poll() {
+        try {
+          const r = await fetch(`/jobs/${jobId}/status/`);
+          const j = await r.json();
+          document.getElementById('msg').innerText = j.message || '';
+          document.getElementById('err').innerText = j.error || '';
+          const total = j.total || 0;
+          const done = j.done || 0;
+          const pct = total > 0 ? Math.round((done/total)*100) : (j.status==='success'?100:0);
+          document.getElementById('prog').innerText = `${done}/${total}`;
+          const bar = document.getElementById('bar');
+          bar.style.width = `${pct}%`;
+          bar.innerText = `${pct}%`;
+          const statusBadge = document.querySelector('.badge');
+          if (statusBadge) statusBadge.innerText = j.status;
+        } catch {}
+      }
+      poll();
+      setInterval(poll, 1000);
+    </script>
+  </body>
+  </html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>物资信息导入</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body { background-color: #f8f9fa; padding: 15px; }
+      .form-container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+      h2 { text-align: center; margin-bottom: 20px; font-size: 20px; color: #333; }
+      .submit-btn { width: 100%; padding: 8px; background-color: #0d6efd; border: none; color: white; border-radius: 4px; font-weight: 600; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <div class="form-container">
+      <h2>物资信息导入（CSV）</h2>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          {{ form.csv_file.label_tag }}
+          {{ form.csv_file }}
+          <div style="font-size: 12px; color: #666; margin-top: 3px">
+            列：item_id, item_name, category, item_uom, purc_type；编码 UTF-8 或 UTF-8 BOM
+          </div>
+        </div>
+        
+        <div class="mb-3">{{ form.batch_size.label_tag }}{{ form.batch_size }}</div>
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
+        <button type="submit" class="submit-btn">导入</button>
+      </form>
+    </div>
+  </body>
+  <script>
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e){
+        const btns = form.querySelectorAll('button[type="submit"]');
+        btns.forEach(b=>{b.disabled=true; b.innerText='导入中...';});
+      });
+    }
+  </script>
+  </html>

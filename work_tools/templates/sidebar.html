@@ -1,0 +1,88 @@
+<style>
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    padding-left: 220px;
+  }
+  .navbar {
+    display: none !important;
+  }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    background: #0d6efd;
+    color: #fff;
+    padding: 16px 12px;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .nav-item {
+    margin-bottom: 6px;
+  }
+  .nav-link-side {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .nav-link-side:hover {
+    background-color: #0b5ed7;
+    color: #fff;
+  }
+</style>
+<aside class="sidebar">
+  <span class="brand">工作集</span>
+  <ul class="nav-list">
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'unit_change' %}">单位信息修改</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'contract_price' %}"
+        >明细单价修改</a
+      >
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'contract_item' %}">物资编码修改</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'contract_budget' %}"
+        >合同预算修改</a
+      >
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'gov_report' %}">是否报送国资委</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'importance' %}">物项重要性修改</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'enddate' %}">合同失效日期修改</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'org_import' %}">组织机构导入</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'item_import' %}">物资信息导入</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link-side" href="{% url 'job_list' %}">导入任务</a>
+    </li>
+  </ul>
+</aside>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>导入任务</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      .page-header { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
+      .badge-status { text-transform:uppercase; }
+      .card-job { margin-bottom:12px; }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <div class="container">
+      <div class="page-header">
+        <h3>导入任务</h3>
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'job_list' %}">刷新</a>
+      </div>
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th style="width:30%">进度</th>
+                <th>更新时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for j in jobs %}
+              <tr>
+                <td>{{ j.id }}</td>
+                <td>{{ j.job_type }}</td>
+                <td>
+                  {% if j.status == 'success' %}
+                  <span class="badge text-bg-success badge-status">{{ j.status }}</span>
+                  {% elif j.status == 'failed' %}
+                  <span class="badge text-bg-danger badge-status">{{ j.status }}</span>
+                  {% elif j.status == 'running' %}
+                  <span class="badge text-bg-warning badge-status">{{ j.status }}</span>
+                  {% else %}
+                  <span class="badge text-bg-secondary badge-status">{{ j.status }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="progress" style="height:18px;">
+                    {% with p=j.total|yesno:"1,0" %}{% endwith %}
+                    {% if j.total %}
+                    {% widthratio j.done j.total 100 as pct %}
+                    <div class="progress-bar {% if j.status == 'success' %}bg-success{% elif j.status == 'failed' %}bg-danger{% else %}bg-info{% endif %}" role="progressbar" style="width: {{ pct }}%">{{ j.done }}/{{ j.total }}</div>
+                    {% else %}
+                    <div class="progress-bar bg-info" role="progressbar" style="width: 0%">0/{{ j.total }}</div>
+                    {% endif %}
+                  </div>
+                </td>
+                <td>{{ j.updated_at }}</td>
+                <td>
+                  <a class="btn btn-sm btn-primary" href="{% url 'job_detail' j.id %}">查看</a>
+                  <form method="post" action="{% url 'job_delete' j.id %}" style="display:inline-block; margin-left:6px;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger" {% if j.status == 'running' %}disabled{% endif %}>删除</button>
+                  </form>
+                  <form method="post" action="{% url 'job_fail' j.id %}" style="display:inline-block; margin-left:6px;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-warning" {% if j.status != 'running' %}disabled{% endif %}>标记失败</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>

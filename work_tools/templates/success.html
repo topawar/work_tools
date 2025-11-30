@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>操作成功</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .success-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      h2 {
+        color: #28a745;
+        margin-bottom: 20px;
+      }
+      .file-info {
+        text-align: left;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        word-break: break-all;
+      }
+      .btn-download {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 12px;
+      }
+      .btn-download:hover {
+        background-color: #218838;
+        color: white;
+      }
+      .btn-back {
+        margin-top: 15px;
+        background-color: #6c757d;
+        color: white;
+        padding: 8px 16px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .btn-back:hover {
+        background-color: #5a6268;
+        color: white;
+      }
+
+      /* 导航栏样式 */
+      .navbar-custom {
+        background-color: #0d6efd;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .nav-link-custom {
+        color: white !important;
+        padding: 12px 20px;
+        font-weight: 500;
+        transition: background-color 0.3s;
+        border-radius: 8px;
+      }
+      .nav-link-custom:hover {
+        background-color: #0b5ed7;
+      }
+      .navbar-brand-custom {
+        color: white !important;
+        font-weight: 600;
+        padding: 12px 20px;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <nav class="navbar navbar-custom navbar-expand-lg">
+      <div class="container-fluid">
+        <span class="navbar-brand navbar-brand-custom">工作集</span>
+        <div class="navbar-nav">
+          <a class="nav-link nav-link-custom" href="{% url 'unit_change' %}"
+            >单位信息修改</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'contract_price' %}"
+            >明细单价修改</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'contract_item' %}"
+            >物资编码修改</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'contract_budget' %}"
+            >合同预算修改</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'gov_report' %}"
+            >是否报送国资委</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'importance' %}"
+            >物项重要性修改</a
+          >
+          <a class="nav-link nav-link-custom" href="{% url 'enddate' %}"
+            >合同失效日期修改</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <div class="success-container">
+      <h2>操作成功！</h2>
+      <p>SQL文件已生成，请下载后使用。</p>
+
+      <div class="file-info">
+        <strong>文件路径：</strong><br />
+        {{ filepath }}
+      </div>
+
+      <a href="{{ download_url }}" class="btn-download">下载 SQL 文件</a>
+      <br />
+      <a href="{% url 'unit_change' %}" class="btn-back">返回首页</a>
+    </div>
+  </body>
+</html>
