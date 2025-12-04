@@ -1,8 +1,73 @@
+# 数据库文件
 db.sqlite3
 *.sqlite3
+*.db
+
+# Python缓存文件
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# 虚拟环境
 .venv/
+venv/
+ENV/
+env/
+
+# 临时文件和下载目录
 temp_uploads/
+temp_downloads/
+临时文件/
+
+# 日志文件
+logs/
 *.log
+*.log.*
+
+# IDE和编辑器配置
+.vscode/
+.idea/
+.trae/
+*.swp
+*.swo
+*~
 .DS_Store
+Thumbs.db
+
+# 测试和调试文件
+test_*.py
+diagnose_*.py
+watch_*.py
+add_logging.py
+
+# 文档文件（临时生成的）
+ADD_LOGGING_GUIDE.md
+DEBUG_NEXT_STEPS.md
+FIXED_LOGGING_ISSUE.md
+LOGGING_EXAMPLE.md
+LOGGING_STATUS.md
+LOGGING_VERIFICATION.md
+LOG_USAGE.md
+日志系统完成总结.md
+测试指南.md
+浏览器测试步骤.md
+
+# 备份文件
+*.bak
+*.backup
+*.old
+*.orig
+
+# 系统文件
+.env
+.env.local
+*.tmp
+*.temp

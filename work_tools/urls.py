@@ -35,6 +35,10 @@ urlpatterns = [
     path('importance/template/', view.download_importance_template, name='download_importance_template'),
     path('enddate/', view.enddate_update_view, name='enddate'),
     path('enddate/template/', view.download_enddate_template, name='download_enddate_template'),
+    path('erp/terminate/', view.erp_terminate_view, name='erp_terminate'),
+    path('erp/terminate/template/', view.download_erp_terminate_template, name='download_erp_terminate_template'),
+    path('price-type/update/', view.floating_price_type_view, name='price_type_update'),
+    path('price-type/template/', view.download_price_type_template, name='download_price_type_template'),
     path('download/<str:filename>/', view.download_sql, name='download_sql'),
     path('org/import/', view.org_import_view, name='org_import'),
     path('org/search/', view.org_search_api, name='org_search'),
@@ -46,4 +50,5 @@ urlpatterns = [
     path('jobs/<int:job_id>/status/', view.job_status_api, name='job_status'),
     path('jobs/<int:job_id>/delete/', view.job_delete_view, name='job_delete'),
     path('jobs/<int:job_id>/fail/', view.job_fail_view, name='job_fail'),
+    path('system/config/', view.system_config_view, name='system_config'),
 ]

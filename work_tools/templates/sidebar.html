@@ -5,84 +5,199 @@
   }
   body {
     margin: 0;
-    padding-left: 220px;
-  }
-  .navbar {
-    display: none !important;
+    padding-left: 240px;
   }
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 220px;
-    background: #0d6efd;
-    color: #fff;
+    width: 240px;
+    background: #ffffff;
+    color: #1f2937;
     padding: 16px 12px;
+    overflow-y: auto;
+    border-right: 1px solid #e5e7eb;
   }
   .brand {
     font-weight: 700;
-    font-size: 18px;
+    font-size: 16px;
     margin-bottom: 12px;
     display: block;
+    color: #111827;
   }
-  .nav-list {
+  .sidebar-group {
+    margin-bottom: 8px;
+  }
+  .sidebar-summary {
     list-style: none;
-    padding: 0;
-    margin: 0;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #374151;
   }
-  .nav-item {
-    margin-bottom: 6px;
+  .sidebar-summary:hover {
+    background-color: #f3f4f6;
+  }
+  .sidebar-summary::marker {
+    display: none;
+  }
+  .sidebar-summary::before {
+    content: "\25BE";
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.2s ease;
+    color: #6b7280;
+  }
+  details[open] > .sidebar-summary::before {
+    transform: rotate(180deg);
   }
   .nav-link-side {
     display: block;
-    color: #fff;
+    color: #374151;
     text-decoration: none;
-    padding: 10px 12px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
     font-weight: 500;
+    position: relative;
   }
   .nav-link-side:hover {
-    background-color: #0b5ed7;
-    color: #fff;
+    background-color: #eef2ff;
+    color: #1f2937;
+  }
+  .nav-link-side.active {
+    background-color: #e0e7ff;
+    color: #1f2937;
+  }
+  .nav-link-side.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background-color: #2563eb;
+    border-radius: 2px;
   }
 </style>
 <aside class="sidebar">
   <span class="brand">工作集</span>
-  <ul class="nav-list">
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'unit_change' %}">单位信息修改</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'contract_price' %}"
-        >明细单价修改</a
-      >
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'contract_item' %}">物资编码修改</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'contract_budget' %}"
-        >合同预算修改</a
-      >
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'gov_report' %}">是否报送国资委</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'importance' %}">物项重要性修改</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'enddate' %}">合同失效日期修改</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'org_import' %}">组织机构导入</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'item_import' %}">物资信息导入</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link-side" href="{% url 'job_list' %}">导入任务</a>
-    </li>
-  </ul>
+  {% if sidebar_groups %} {% for g in sidebar_groups %}
+  <details class="sidebar-group" {% if g.open %}open{% endif %}>
+    <summary class="sidebar-summary">{{ g.title }}</summary>
+    {% for it in g.items %}
+    <a
+      class="nav-link-side {% if active_menu == it.url_name %}active{% endif %}"
+      href="{% url it.url_name %}"
+      >{{ it.label }}</a
+    >
+    {% endfor %}
+  </details>
+  {% endfor %} {% else %}
+  <details class="sidebar-group" open>
+    <summary class="sidebar-summary">合同</summary>
+    <a
+      class="nav-link-side {% if active_menu == 'contract_price' %}active{% endif %}"
+      href="{% url 'contract_price' %}"
+      >明细单价修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'contract_item' %}active{% endif %}"
+      href="{% url 'contract_item' %}"
+      >物资编码修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'contract_budget' %}active{% endif %}"
+      href="{% url 'contract_budget' %}"
+      >合同预算修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'enddate' %}active{% endif %}"
+      href="{% url 'enddate' %}"
+      >合同失效日期修改</a
+    >
+  </details>
+  <details class="sidebar-group">
+    <summary class="sidebar-summary">计划-寻源</summary>
+    <a
+      class="nav-link-side {% if active_menu == 'unit_change' %}active{% endif %}"
+      href="{% url 'unit_change' %}"
+      >合同起草、签约单位修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'gov_report' %}active{% endif %}"
+      href="{% url 'gov_report' %}"
+      >是否报送国资委</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'importance' %}active{% endif %}"
+      href="{% url 'importance' %}"
+      >物项重要性修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'price_type_update' %}active{% endif %}"
+      href="{% url 'price_type_update' %}"
+      >浮动单价类型修改</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'erp_terminate' %}active{% endif %}"
+      href="{% url 'erp_terminate' %}"
+      >核电ERP终止</a
+    >
+  </details>
+  <details class="sidebar-group">
+    <summary class="sidebar-summary">数据导入</summary>
+    <a
+      class="nav-link-side {% if active_menu == 'org_import' %}active{% endif %}"
+      href="{% url 'org_import' %}"
+      >组织机构导入</a
+    >
+    <a
+      class="nav-link-side {% if active_menu == 'item_import' %}active{% endif %}"
+      href="{% url 'item_import' %}"
+      >物资信息导入</a
+    >
+  </details>
+  <details class="sidebar-group">
+    <summary class="sidebar-summary">任务管理</summary>
+    <a
+      class="nav-link-side {% if active_menu == 'job_list' %}active{% endif %}"
+      href="{% url 'job_list' %}"
+      >导入任务</a
+    >
+  </details>
+  <details class="sidebar-group">
+    <summary class="sidebar-summary">系统配置</summary>
+    <a
+      class="nav-link-side {% if active_menu == 'system_config' %}active{% endif %}"
+      href="{% url 'system_config' %}"
+      >SQL合并策略</a
+    >
+  </details>
+
+  {% endif %}
 </aside>
+<script>
+  (function () {
+    var groups = document.querySelectorAll(".sidebar-group");
+    groups.forEach(function (d) {
+      d.addEventListener("toggle", function () {
+        if (d.open) {
+          groups.forEach(function (o) {
+            if (o !== d) {
+              o.open = false;
+            }
+          });
+        }
+      });
+    });
+    var active = document.querySelector(".nav-link-side.active");
+    if (active) {
+      var parentDetails = active.closest("details.sidebar-group");
+      if (parentDetails) {
+        parentDetails.open = true;
+      }
+    }
+  })();
+</script>

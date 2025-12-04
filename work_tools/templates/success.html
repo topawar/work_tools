@@ -61,61 +61,10 @@
         background-color: #5a6268;
         color: white;
       }
-
-      /* 导航栏样式 */
-      .navbar-custom {
-        background-color: #0d6efd;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      .nav-link-custom {
-        color: white !important;
-        padding: 12px 20px;
-        font-weight: 500;
-        transition: background-color 0.3s;
-        border-radius: 8px;
-      }
-      .nav-link-custom:hover {
-        background-color: #0b5ed7;
-      }
-      .navbar-brand-custom {
-        color: white !important;
-        font-weight: 600;
-        padding: 12px 20px;
-      }
     </style>
   </head>
   <body>
     {% include 'sidebar.html' %}
-    <nav class="navbar navbar-custom navbar-expand-lg">
-      <div class="container-fluid">
-        <span class="navbar-brand navbar-brand-custom">工作集</span>
-        <div class="navbar-nav">
-          <a class="nav-link nav-link-custom" href="{% url 'unit_change' %}"
-            >单位信息修改</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'contract_price' %}"
-            >明细单价修改</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'contract_item' %}"
-            >物资编码修改</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'contract_budget' %}"
-            >合同预算修改</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'gov_report' %}"
-            >是否报送国资委</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'importance' %}"
-            >物项重要性修改</a
-          >
-          <a class="nav-link nav-link-custom" href="{% url 'enddate' %}"
-            >合同失效日期修改</a
-          >
-        </div>
-      </div>
-    </nav>
 
     <div class="success-container">
       <h2>操作成功！</h2>
@@ -127,6 +76,23 @@
       </div>
 
       <a href="{{ download_url }}" class="btn-download">下载 SQL 文件</a>
+      {% if supplement_download_url %}
+      <br />
+      <a
+        href="{{ supplement_download_url }}"
+        class="btn-download"
+        style="background-color: #198754"
+        >下载补充模板文件</a
+      >
+      {% endif %} {% if fail_download_url %}
+      <br />
+      <a
+        href="{{ fail_download_url }}"
+        class="btn-download"
+        style="background-color: #dc3545"
+        >下载失败明细文件</a
+      >
+      {% endif %}
       <br />
       <a href="{% url 'unit_change' %}" class="btn-back">返回首页</a>
     </div>

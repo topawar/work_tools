@@ -1,0 +1,14 @@
+{
+  "MERGE_MAX_IN_SIZE": 500,
+  "MERGE_MODULES": {
+    "price": true,
+    "item": true,
+    "unit": true,
+    "budget": true,
+    "gov": true,
+    "importance": true,
+    "enddate": true,
+    "erp": true,
+    "price_type": true
+  }
+}

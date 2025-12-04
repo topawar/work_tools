@@ -112,9 +112,9 @@ class UnitChangeForm(StripWhitespaceMixin, forms.Form):
     )
 
     excel_file = forms.FileField(
-        label="或上传 Excel（列：scheme_no, inquiry_no, result_no，可选new_drafting_id/new_drafting_name/new_party_id/new_party_name，orig_*用于回退）",
+        label="或上传 Excel（列：采购方案编号/询价单编号/定标结果编号；可选：新起草单位ID/新起草单位名称/新签约主体ID/新签约主体名称；原起草单位/原签约主体用于回退）",
         required=False,
-        help_text=".xlsx；支持每行配置不同新值；为空则不修改；orig_*用于生成精确回退",
+        help_text=".xlsx；每行可配置不同新值；为空则不修改；原字段用于生成精确回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
@@ -157,9 +157,9 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
     
     new_price = forms.DecimalField(
         label="新单价",
-        decimal_places=2,
+        decimal_places=8,
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'})
     )
 
     orig_quantity = forms.DecimalField(
@@ -170,9 +170,9 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
     )
     orig_price = forms.DecimalField(
         label="原单价（可选）",
-        decimal_places=2,
+        decimal_places=8,
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'})
     )
 
     # 单条合同明细行ID
@@ -184,9 +184,9 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
     
     # Excel批量导入
     excel_file = forms.FileField(
-        label="或上传 Excel 文件（列名：line_id, price，可选quantity, orig_quantity, orig_price）",
+        label="或上传 Excel（列：明细行ID/单价；可选：数量/原数量/原单价）",
         required=False,
-        help_text=".xlsx，必含 line_id/price；quantity 可选；可选 orig_* 以生成准确回退",
+        help_text=".xlsx；至少提供明细行ID与单价；可选原字段用于回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
@@ -239,7 +239,11 @@ class ContractItemUpdateForm(StripWhitespaceMixin, forms.Form):
         # 验证不能同时提供单条记录和上传Excel文件
         if single_line_id and excel_file:
             raise forms.ValidationError("不能同时填写单条合同明细行ID和上传Excel文件")
-        
+
+        if single_line_id and not excel_file:
+            if not cleaned_data.get('new_item_id'):
+                raise forms.ValidationError("单条提交时新物资编码为必填项")
+
         return cleaned_data
 
 class ContractBudgetUpdateForm(StripWhitespaceMixin, forms.Form):
@@ -248,50 +252,43 @@ class ContractBudgetUpdateForm(StripWhitespaceMixin, forms.Form):
         max_length=100,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     ops_remark = forms.CharField(
         label="操作备注（支持解析ONES链接）",
         max_length=200,
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
     )
-
     contract_bpo_id = forms.CharField(
-        label="合同号（BPO_ID，可选）",
+        label="合同编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     section_no = forms.CharField(
-        label="标段编号（SECTION_NO，单条）",
+        label="询价单标段编号（单条）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     supplier_id = forms.CharField(
         label="供应商ID（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     new_budget = forms.DecimalField(
         label="新预算金额/单价",
-        decimal_places=2,
+        decimal_places=8,
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'})
     )
-
     orig_budget = forms.DecimalField(
         label="原预算金额/单价（可选，用于回退）",
-        decimal_places=2,
+        decimal_places=8,
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'})
     )
-
     excel_file = forms.FileField(
-        label="或上传 Excel（列：合同号/标段编号/供应商ID(可选)/新预算/原预算；支持中文与SQL字段名）",
+        label="或上传 Excel（列：合同编号/询价单标段编号/供应商ID(可选)/新预算/原预算）",
         required=False,
-        help_text=".xlsx；至少提供标段编号或合同号与新预算；可选供应商ID以增加限定；原预算用于回退",
+        help_text=".xlsx；至少提供标段编号或合同编号与新预算；可选供应商ID以增加限定；原预算用于回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
@@ -307,6 +304,40 @@ class ContractBudgetUpdateForm(StripWhitespaceMixin, forms.Form):
         if excel and (cd.get('section_no') or cd.get('contract_bpo_id') or (cd.get('new_budget') is not None)):
             raise forms.ValidationError("不能同时填写单条记录和上传Excel文件")
         return cd
+
+class ErpTerminateForm(StripWhitespaceMixin, forms.Form):
+    dynamic_id = forms.CharField(
+        label="动态编号（如变更单号）",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    ops_remark = forms.CharField(
+        label="操作备注（支持解析ONES链接）",
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
+    )
+    inq_id = forms.CharField(label="询价单编号（单条）", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    purchase_scheme_no = forms.CharField(label="采购方案编号（单条）", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    purchase_package_no = forms.CharField(label="PURCHASE_PACKAGE_NO（单条）", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    excel_file = forms.FileField(
+        label="或上传 Excel（列：询价单编号/采购方案编号/PURCHASE_PACKAGE_NO）",
+        required=False,
+        help_text=".xlsx；至少提供任一列以生成对应SQL",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+    def clean(self):
+        cleaned_data = super().clean()
+        inq_id = cleaned_data.get('inq_id')
+        sch = cleaned_data.get('purchase_scheme_no')
+        pkg = cleaned_data.get('purchase_package_no')
+        excel_file = cleaned_data.get('excel_file')
+        if not excel_file and not (inq_id or sch or pkg):
+            raise forms.ValidationError("请至少填写单条ID或上传Excel文件")
+        if excel_file and (inq_id or sch or pkg):
+            raise forms.ValidationError("不能同时填写单条并上传Excel")
+        return cleaned_data
+
 
 
 class GovReportForm(StripWhitespaceMixin, forms.Form):
@@ -324,17 +355,17 @@ class GovReportForm(StripWhitespaceMixin, forms.Form):
     )
 
     scheme_no = forms.CharField(
-        label="采购方案编号（PURCHASE_SCHEME_NO，可选）",
+        label="采购方案编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     inq_id = forms.CharField(
-        label="询价单编号（INQ_ID，可选）",
+        label="询价单编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     bpo_id = forms.CharField(
-        label="合同号（BPO_ID，可选）",
+        label="合同编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
@@ -357,7 +388,7 @@ class GovReportForm(StripWhitespaceMixin, forms.Form):
     )
 
     excel_file = forms.FileField(
-        label="或上传 Excel（列：采购方案编号/询价单编号/合同号/是否报送(是/否)；支持中文或SQL字段名）",
+        label="或上传 Excel（列：采购方案编号/询价单编号/合同编号/是否报送(是/否)）",
         required=False,
         help_text=".xlsx；每行任意提供方案/询价/合同之一；填写“是否报送”为是/否",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
@@ -391,12 +422,12 @@ class ImportanceForm(StripWhitespaceMixin, forms.Form):
     )
 
     scheme_no = forms.CharField(
-        label="采购方案编号（PURCHASE_SCHEME_NO，可选）",
+        label="采购方案编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     inq_id = forms.CharField(
-        label="询价单编号（INQ_ID，可选）",
+        label="询价单编号（可选）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
@@ -427,9 +458,9 @@ class ImportanceForm(StripWhitespaceMixin, forms.Form):
     )
 
     excel_file = forms.FileField(
-        label="或上传 Excel（列：采购方案编号/询价单编号/合同号/物项重要性/原重要性；支持中文或SQL字段名与数值0/1/2/3/4）",
+        label="或上传 Excel（列：采购方案编号/询价单编号/合同编号/物项重要性/原重要性）",
         required=False,
-        help_text=".xlsx；每行任意提供方案/询价/合同之一；物项重要性支持是中文标签或数值；原重要性用于回退",
+        help_text=".xlsx；每行任意提供方案/询价/合同之一；原重要性用于回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
@@ -473,32 +504,57 @@ class EndDateUpdateForm(StripWhitespaceMixin, forms.Form):
     )
 
     bpo_id = forms.CharField(
-        label="合同号（BPO_ID，单条）",
+        label="合同编号（单条）",
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
-    bpo_ids_text = forms.CharField(
-        label="合同号批量（每行一个）",
-        required=False,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': '每行一个合同号'})
-    )
 
     excel_file = forms.FileField(
-        label="或上传 Excel（列：合同号/新失效日期/原失效日期；支持中文与SQL字段名）",
+        label="或上传 Excel（列：合同编号/新失效日期/原失效日期）",
         required=False,
-        help_text=".xlsx；至少提供合同号与新失效日期；原失效日期用于回退",
+        help_text=".xlsx；至少提供合同编号与新失效日期；原失效日期用于回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
     def clean(self):
         cd = super().clean()
         excel = cd.get('excel_file')
-        single_any = any([cd.get('bpo_id'), cd.get('bpo_ids_text')])
+        single_any = bool(cd.get('bpo_id'))
         if not excel and not single_any:
             raise forms.ValidationError("请填写单条/批量合同号，或上传Excel文件")
         if excel and single_any:
-            raise forms.ValidationError("不能同时填写单条/批量合同号和上传Excel文件")
+            raise forms.ValidationError("不能同时填写单条合同号和上传Excel文件")
         if not excel and single_any and not cd.get('end_date'):
             raise forms.ValidationError("需填写新失效日期")
+        return cd
+class FloatingPriceTypeForm(StripWhitespaceMixin, forms.Form):
+    dynamic_id = forms.CharField(
+        label="动态编号（如变更单号）",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    ops_remark = forms.CharField(
+        label="操作备注（支持解析ONES链接）",
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
+    )
+    bpo_id = forms.CharField(label="合同编号（单条）", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    excel_file = forms.FileField(
+        label="或上传 Excel（列：合同编号）",
+        required=False,
+        help_text=".xlsx；提供合同编号即可，系统将执行由10→20的固定修改，回退为20→10",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+    def clean(self):
+        cd = super().clean()
+        excel = cd.get('excel_file')
+        has_single = bool(cd.get('bpo_id'))
+        if not excel and not has_single:
+            raise forms.ValidationError("请填写单条合同编号，或上传Excel文件")
+        if excel and cd.get('bpo_id'):
+            raise forms.ValidationError("不能同时填写单条并上传Excel")
+        if not cd.get('ops_remark'):
+            raise forms.ValidationError("操作备注为必填项")
         return cd
