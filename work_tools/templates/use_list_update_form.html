@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>合同起草、签约单位修改</title>
+    <title>适用清单修改</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -73,13 +73,30 @@
       .form-text {
         font-size: 12px;
       }
+      .info-box {
+        background-color: #e3f2fd;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>
     {% include 'sidebar.html' %}
 
     <div class="form-container">
-      <h2>合同起草、签约单位修改</h2>
+      <h2>适用清单修改</h2>
+
+      <div class="info-box">
+        <strong>功能说明:</strong>
+        修改tphct04表的组织机构编码(ORG_CODE)和名称(org_name)<br />
+        <strong>支持方式:</strong> 单条记录修改 或 Excel批量导入<br />
+        <strong>数据库:</strong> ip:192.168.11.71, 库名:cnnc_ph<br />
+        <strong>编码补充:</strong>
+        只需输入名称,编码自动查询补充(复用起草/签约单位逻辑)
+      </div>
+
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
@@ -91,59 +108,54 @@
         <!-- 操作备注 -->
         <div class="form-col" style="margin-top: 15px">
           {{ form.ops_remark.label_tag }}<br />{{ form.ops_remark }}
-          <div class="form-text">支持ONES链接格式：#69054 修改合同信息</div>
+          <div class="form-text">支持ONES链接格式：#69054 修改适用清单</div>
         </div>
 
-        <div class="section-divider">采购单据信息</div>
-        <div class="form-row">
-          <div class="form-col">
-            {{ form.scheme_no.label_tag }}<br />{{ form.scheme_no }}
-          </div>
-          <div class="form-col">
-            {{ form.inquiry_no.label_tag }}<br />{{ form.inquiry_no }}
-          </div>
-          <div class="form-col">
-            {{ form.result_no.label_tag }}<br />{{ form.result_no }}
-          </div>
-        </div>
-        <div class="form-text text-muted mt-1">
-          <a href="{% url 'download_unit_template' %}"
-            >下载单位变更Excel模板（含中文列名）</a
-          >
+        <!-- 单条记录 -->
+        <div class="section-divider">单条记录信息</div>
+        <div class="form-col">
+          {{ form.business_id.label_tag }}<br />{{ form.business_id }}
         </div>
 
-        <!-- 起草单位信息 -->
-        <div class="section-divider">起草单位信息</div>
-        <div class="form-row">
+        <div class="form-row" style="margin-top: 10px">
           <div class="form-col">
-            {{ form.old_drafting_name.label_tag }}<br />
-            {{ form.old_drafting_name }}
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-col">
-            {{ form.new_drafting_name.label_tag }}<br />
-            {{form.new_drafting_name }}
+            {{ form.new_org_name.label_tag }}<br />{{ form.new_org_name }}
+            <div class="form-text" style="color: #6b7280; margin-top: 4px">
+              支持模糊查询,编码将自动补充
+            </div>
           </div>
         </div>
 
-        <!-- 签约主体信息 -->
-        <div class="section-divider">签约主体信息</div>
         <div class="form-row">
           <div class="form-col">
-            {{ form.old_party_name.label_tag }}<br />{{ form.old_party_name }}
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-col">
-            {{ form.new_party_name.label_tag }}<br />{{ form.new_party_name }}
+            {{ form.orig_org_name.label_tag }}<br />{{ form.orig_org_name }}
+            <div class="form-text" style="color: #6b7280; margin-top: 4px">
+              支持模糊查询,编码将自动补充
+            </div>
           </div>
         </div>
 
         <!-- Excel上传 -->
-        <div class="form-col" style="margin-top: 15px">
+        <div class="section-divider">或批量导入</div>
+        <div class="form-text text-muted" style="margin-bottom: 5px">
+          <a
+            href="{% url 'download_use_list_template' %}"
+            style="font-weight: 600; color: #2563eb"
+          >
+            ⬇ 下载适用清单修改模板
+          </a>
+          <span style="color: #6b7280; font-size: 12px; margin-left: 8px"
+            >(含中文列名和示例数据)</span
+          >
+        </div>
+        <div class="form-col" style="margin-top: 10px">
           {{ form.excel_file.label_tag }}<br />{{ form.excel_file }}
           <div class="form-text">{{ form.excel_file.help_text }}</div>
+          <div class="form-text mt-2">
+            <strong>Excel列名:</strong> BUSINESS_ID(必填), 新组织机构名称,
+            新组织机构编码(可留空自动补充), 原组织机构名称,
+            原组织机构编码(可留空自动补充)
+          </div>
         </div>
 
         {% if form.non_field_errors %}
@@ -152,7 +164,7 @@
         </div>
         {% endif %}
 
-        <div class="form-row" style="gap: 10px">
+        <div class="form-row" style="gap: 10px; margin-top: 20px">
           <div class="form-col">
             <button type="submit" class="submit-btn">生成 SQL</button>
           </div>
@@ -181,16 +193,14 @@
     </div>
 
     <script>
-      const fields = [
-        "id_old_drafting_name",
-        "id_new_drafting_name",
-        "id_old_party_name",
-        "id_new_party_name",
-      ];
+      const nameFields = ["id_new_org_name", "id_orig_org_name"];
 
       function attachAutocomplete(id) {
         const input = document.getElementById(id);
-        if (!input) return;
+        if (!input) {
+          console.warn("未找到输入框:", id);
+          return;
+        }
 
         const listId = id + "_list";
         input.setAttribute("list", listId);
@@ -206,7 +216,10 @@
         input.addEventListener("input", () => {
           const q = input.value.trim();
           if (timer) clearTimeout(timer);
-          if (!q) return;
+          if (!q) {
+            dl.innerHTML = "";
+            return;
+          }
 
           timer = setTimeout(async () => {
             try {
@@ -217,17 +230,19 @@
               dl.innerHTML = "";
               data.forEach((item) => {
                 const opt = document.createElement("option");
-                opt.value = item.label;
+                opt.value = item.label; // 使用label字段(名称-编码)
                 dl.appendChild(opt);
               });
+              console.log("搜索结果:", data.length, "条");
             } catch (e) {
               console.error("自动完成搜索失败:", e);
             }
-          }, 200);
+          }, 200); // 缩短延迟到200ms
         });
       }
 
-      fields.forEach(attachAutocomplete);
+      nameFields.forEach(attachAutocomplete);
+      console.log("自动完成功能已启用");
     </script>
   </body>
 </html>

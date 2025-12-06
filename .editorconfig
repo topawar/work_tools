@@ -1,0 +1,44 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# 所有文件
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python文件
+[*.py]
+indent_style = space
+indent_size = 4
+
+# HTML/Django模板文件 - 关键配置
+[*.html]
+indent_style = space
+indent_size = 2
+max_line_length = 500
+
+# templates目录下的HTML文件 - Django模板
+[templates/**.html]
+indent_style = space
+indent_size = 2
+max_line_length = 500
+# 不自动格式化
+trim_trailing_whitespace = false
+
+# JavaScript/JSON文件
+[*.{js,json}]
+indent_style = space
+indent_size = 2
+
+# CSS文件
+[*.css]
+indent_style = space
+indent_size = 2
+
+# Markdown文件
+[*.md]
+trim_trailing_whitespace = false

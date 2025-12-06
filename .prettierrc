@@ -1,0 +1,29 @@
+{
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "overrides": [
+    {
+      "files": "*.html",
+      "options": {
+        "parser": "html",
+        "printWidth": 200,
+        "htmlWhitespaceSensitivity": "ignore"
+      }
+    },
+    {
+      "files": "templates/**/*.html",
+      "options": {
+        "parser": "html",
+        "printWidth": 500,
+        "htmlWhitespaceSensitivity": "ignore",
+        "proseWrap": "never"
+      }
+    }
+  ]
+}

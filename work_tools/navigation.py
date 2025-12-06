@@ -6,6 +6,10 @@ SIDEBAR_GROUPS = [
             {'label': '物资编码修改', 'url_name': 'contract_item'},
             {'label': '合同预算修改', 'url_name': 'contract_budget'},
             {'label': '合同失效日期修改', 'url_name': 'enddate'},
+            {'label': '适用清单修改', 'url_name': 'use_list_update'},
+            {'label': '合同状态修改', 'url_name': 'appr_state_change'},
+            {'label': '终止合同', 'url_name': 'contract_terminate'},
+            {'label': '终止简化寻源合同', 'url_name': 'sourcing_terminate'},
         ],
     },
     {
@@ -16,6 +20,7 @@ SIDEBAR_GROUPS = [
             {'label': '物项重要性修改', 'url_name': 'importance'},
             {'label': '浮动单价类型修改', 'url_name': 'price_type_update'},
             {'label': '核电ERP终止', 'url_name': 'erp_terminate'},
+            {'label': '项目轮次', 'url_name': 'project_round'},
         ],
     },
     {

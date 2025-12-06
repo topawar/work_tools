@@ -14,14 +14,21 @@ DEFAULT = {
         'enddate': True,
         'erp': True,
         'price_type': True,
+        'use_list': True,
+        'appr_state': True,
+        'contract_terminate': True,
+        'sourcing_terminate': True,
+        'project_round': True,
     }
 }
+
 
 def _path():
     base = getattr(settings, 'BASE_DIR', os.getcwd())
     cfg_dir = os.path.join(base, 'config')
     os.makedirs(cfg_dir, exist_ok=True)
     return os.path.join(cfg_dir, 'app_config.json')
+
 
 def get_config():
     p = _path()
@@ -33,6 +40,7 @@ def get_config():
         except Exception:
             return DEFAULT.copy()
     return DEFAULT.copy()
+
 
 def set_config(cfg):
     data = {**DEFAULT, **(cfg or {})}

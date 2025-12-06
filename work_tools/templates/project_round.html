@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>核电ERP终止</title>
+    <title>项目轮次</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       body {
@@ -11,9 +11,9 @@
         padding: 15px;
       }
       .form-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
-        background: #fff;
+        background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -28,7 +28,7 @@
         display: flex;
         gap: 15px;
         margin-bottom: 10px;
-        align-items: flex-end;
+        align-items: flex-start;
       }
       .form-col {
         flex: 1;
@@ -41,83 +41,156 @@
       .submit-btn {
         width: 100%;
         padding: 8px;
-        background-color: #0d6efd;
+        background-color: #2563eb;
         border: none;
-        color: #fff;
-        border-radius: 4px;
+        color: white;
+        border-radius: 6px;
         font-weight: 600;
         margin-top: 10px;
-      }
-      .section-divider {
-        margin: 15px 0;
-        padding: 8px 0;
-        font-weight: 600;
-        border-bottom: 2px solid #0d6efd;
-        font-size: 16px;
       }
       .clear-btn {
         display: inline-block;
         width: 100%;
         padding: 8px;
         background-color: #dc3545;
-        color: #fff;
+        color: white;
         border-radius: 4px;
         font-weight: 600;
         text-align: center;
         margin-top: 10px;
         text-decoration: none;
       }
+      .section-divider {
+        margin: 15px 0;
+        padding: 8px 0;
+        font-weight: 600;
+        border-bottom: 2px solid #2563eb;
+        font-size: 16px;
+      }
+      .form-text {
+        font-size: 12px;
+      }
+      .info-box {
+        background: #e7f3ff;
+        padding: 12px;
+        border-radius: 6px;
+        margin: 15px 0;
+        font-size: 13px;
+        border: 1px solid #2563eb;
+      }
+      .info-box strong {
+        color: #2563eb;
+      }
     </style>
   </head>
   <body>
     {% include 'sidebar.html' %}
+
     <div class="form-container">
-      <h2>核电ERP终止工具</h2>
+      <h2>项目轮次</h2>
+
+      <div class="info-box">
+        <strong>📋 字段说明：</strong>
+        <br />
+        <strong>PREV_INQ_ID:</strong> 上轮询价单编号
+        <br />
+        <strong>PREV_PURCHASE_SCHEME_NO:</strong> 上轮采购方案编号
+        <br />
+        <strong>ROUND_NUMBER:</strong> 物理轮次
+        <br />
+        <strong>数据库:</strong> 192.168.11.69 / cnnc_pr
+      </div>
+
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
+
+        <!-- 基本信息 -->
         <div class="form-col">
           {{ form.dynamic_id.label_tag }}
           <br />
           {{ form.dynamic_id }}
         </div>
+
+        <!-- 操作备注 -->
         <div class="form-col" style="margin-top: 15px">
           {{ form.ops_remark.label_tag }}
           <br />
           {{ form.ops_remark }}
+          <div class="form-text">支持ONES链接格式：#70120 项目轮次修改</div>
         </div>
-        <div class="section-divider">单条信息</div>
+
+        <!-- 单条记录 -->
+        <div class="section-divider">单条记录</div>
+        <div class="form-col">
+          {{ form.purchase_scheme_no.label_tag }}
+          <br />
+          {{ form.purchase_scheme_no }}
+        </div>
+
+        <div class="form-row" style="margin-top: 15px">
+          <div class="form-col">
+            {{ form.prev_inq_id.label_tag }}
+            <br />
+            {{ form.prev_inq_id }}
+          </div>
+          <div class="form-col">
+            {{ form.prev_purchase_scheme_no.label_tag }}
+            <br />
+            {{ form.prev_purchase_scheme_no }}
+          </div>
+        </div>
+
+        <div class="form-col" style="margin-top: 15px">
+          {{ form.round_number.label_tag }}
+          <br />
+          {{ form.round_number }}
+        </div>
+
+        <!-- 原值(用于回退) -->
+        <div class="section-divider">原值（用于生成回退语句）</div>
         <div class="form-row">
           <div class="form-col">
-            {{ form.inq_id.label_tag }}
+            {{ form.orig_prev_inq_id.label_tag }}
             <br />
-            {{ form.inq_id }}
+            {{ form.orig_prev_inq_id }}
           </div>
           <div class="form-col">
-            {{ form.purchase_scheme_no.label_tag }}
+            {{ form.orig_prev_purchase_scheme_no.label_tag }}
             <br />
-            {{ form.purchase_scheme_no }}
+            {{ form.orig_prev_purchase_scheme_no }}
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-col">
-            {{ form.purchase_package_no.label_tag }}
-            <br />
-            {{ form.purchase_package_no }}
-          </div>
+
+        <div class="form-col" style="margin-top: 15px">
+          {{ form.orig_round_number.label_tag }}
+          <br />
+          {{ form.orig_round_number }}
         </div>
+
+        <!-- 批量导入 -->
         <div class="section-divider">批量导入</div>
         <div class="form-col">
           {{ form.excel_file.label_tag }}
           <br />
           {{ form.excel_file }}
-          <div style="font-size: 12px; color: #666; margin-top: 3px">
+          <div class="form-text">
             {{ form.excel_file.help_text }}
-            <a href="{% url 'download_erp_terminate_template' %}" style="margin-left: 8px">下载Excel模板</a>
+            <a href="{% url 'download_project_round_template' %}">下载Excel模板</a>
           </div>
         </div>
+
         {% if form.non_field_errors %}
         <div class="alert alert-danger" style="margin-top: 10px">{{ form.non_field_errors }}</div>
+        {% endif %} {% if form.errors %}
+        <div class="alert alert-danger" style="margin-top: 10px">
+          {% for field in form %} {% if field.errors %}
+          <strong>{{ field.label }}:</strong>
+          {{ field.errors|striptags }}
+          <br />
+          {% endif %} {% endfor %}
+        </div>
         {% endif %}
+
         <div class="form-row" style="gap: 10px">
           <div class="form-col">
             <button type="submit" class="submit-btn">生成 SQL</button>

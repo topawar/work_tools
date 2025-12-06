@@ -4,16 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>浮动单价类型修改</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-      body{background:#f8f9fa;padding:15px}
-      .form-container{max-width:800px;margin:0 auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-      h2{text-align:center;margin-bottom:16px;font-size:20px;color:#333}
-      .form-row{display:flex;gap:15px;margin-bottom:10px}
-      .form-col{flex:1}
-      .submit-btn{width:100%;padding:8px;background:#0d6efd;border:none;color:#fff;border-radius:4px;font-weight:600;margin-top:10px}
-      .clear-btn{display:inline-block;width:100%;padding:8px;background:#dc3545;color:#fff;border-radius:4px;font-weight:600;text-align:center;margin-top:10px;text-decoration:none}
-      .section-divider{margin:12px 0;padding:6px 0;font-weight:600;border-bottom:2px solid #0d6efd}
+      body {
+        background: #f8f9fa;
+        padding: 15px;
+      }
+      .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 16px;
+        font-size: 20px;
+        color: #333;
+      }
+      .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+      }
+      .form-col {
+        flex: 1;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 8px;
+        background: #0d6efd;
+        border: none;
+        color: #fff;
+        border-radius: 4px;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+      .clear-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 8px;
+        background: #dc3545;
+        color: #fff;
+        border-radius: 4px;
+        font-weight: 600;
+        text-align: center;
+        margin-top: 10px;
+        text-decoration: none;
+      }
+      .section-divider {
+        margin: 12px 0;
+        padding: 6px 0;
+        font-weight: 600;
+        border-bottom: 2px solid #0d6efd;
+      }
     </style>
   </head>
   <body>
@@ -22,26 +71,61 @@
       <h2>浮动单价类型修改</h2>
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <div class="form-col">{{ form.dynamic_id.label_tag }}<br/>{{ form.dynamic_id }}</div>
-        <div class="form-col" style="margin-top:10px">{{ form.ops_remark.label_tag }}<br/>{{ form.ops_remark }}</div>
+        <div class="form-col">
+          {{ form.dynamic_id.label_tag }}<br />{{ form.dynamic_id }}
+        </div>
+        <div class="form-col" style="margin-top: 10px">
+          {{ form.ops_remark.label_tag }}<br />{{ form.ops_remark }}
+        </div>
         <div class="section-divider">单条</div>
         <div class="form-row">
-          <div class="form-col">{{ form.bpo_id.label_tag }}<br/>{{ form.bpo_id }}</div>
+          <div class="form-col">
+            {{ form.bpo_id.label_tag }}<br />{{ form.bpo_id }}
+          </div>
         </div>
         <div class="section-divider">批量导入</div>
-        <div class="form-col">{{ form.excel_file.label_tag }}<br/>{{ form.excel_file }}
-          <div style="font-size:12px;color:#666;margin-top:3px">{{ form.excel_file.help_text }}
-            <a href="{% url 'download_price_type_template' %}" style="margin-left:8px">下载Excel模板</a>
+        <div class="form-col">
+          {{ form.excel_file.label_tag }}<br />{{ form.excel_file }}
+          <div style="font-size: 12px; color: #666; margin-top: 3px">
+            {{ form.excel_file.help_text }}
+            <a
+              href="{% url 'download_price_type_template' %}"
+              style="margin-left: 8px"
+              >下载Excel模板</a
+            >
           </div>
         </div>
         {% if form.non_field_errors %}
-        <div class="alert alert-danger" style="margin-top:10px">{{ form.non_field_errors }}</div>
+        <div class="alert alert-danger" style="margin-top: 10px">
+          {{ form.non_field_errors }}
+        </div>
         {% endif %}
-        <div class="form-row" style="gap:10px">
-          <div class="form-col"><button type="submit" class="submit-btn">生成 SQL</button></div>
-          <div class="form-col"><a href="?clear=1" class="clear-btn">清除</a></div>
+        <div class="form-row" style="gap: 10px">
+          <div class="form-col">
+            <button type="submit" class="submit-btn">生成 SQL</button>
+          </div>
+          <div class="form-col">
+            <a href="?clear=1" class="clear-btn">清除</a>
+          </div>
         </div>
       </form>
+
+      {% if saved_file %}
+      <div
+        style="
+          margin-top: 20px;
+          padding: 15px;
+          background: #d4edda;
+          border-radius: 8px;
+          border: 1px solid #c3e6cb;
+        "
+      >
+        <strong style="color: #155724">✅ SQL文件已生成</strong>
+        <div style="margin-top: 8px; color: #155724; font-size: 13px">
+          保存位置: {{ saved_file }}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </body>
-  </html>
+</html>

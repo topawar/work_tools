@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import logging.handlers
 import os
 from pathlib import Path
 
@@ -125,101 +126,100 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Logging Configuration
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+# 简化的日志配置 - 直接写入文件,避免复杂配置导致的问题
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {asctime} {message}',
-            'style': '{',
-        },
-        'detailed': {
-            'format': '[{asctime}] {levelname} [{name}:{funcName}:{lineno}] {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
-        },
-    },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'work_tools.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'detailed',
-            'encoding': 'utf-8',
-        },
-        'request_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'requests.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'detailed',
-            'encoding': 'utf-8',
-        },
-        'sql_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'sql_generation.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'detailed',
-            'encoding': 'utf-8',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'errors.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'detailed',
-            'encoding': 'utf-8',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file', 'error_file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'work_tools.request': {
-            'handlers': ['request_file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'work_tools.sql': {
-            'handlers': ['sql_file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'work_tools.view': {
-            'handlers': ['file', 'console', 'error_file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-    'root': {
-        'handlers': ['console', 'file', 'error_file'],
-        'level': 'INFO',
-    },
-}
+# 创建日志目录
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# 完全禁用Django默认日志配置,使用自定义简单配置
+LOGGING_CONFIG = None
+
+# 手动配置日志
+
+
+def setup_logging():
+    """手动设置日志系统,确保日志能够正常写入"""
+    # 创建格式化器
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s [%(name)s:%(funcName)s:%(lineno)d] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
+    # 请求日志
+    request_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(LOG_DIR, 'requests.log'),
+        maxBytes=10*1024*1024,
+        backupCount=10,
+        encoding='utf-8'
+    )
+    request_handler.setFormatter(formatter)
+    request_handler.setLevel(logging.INFO)
+
+    request_logger = logging.getLogger('app.request')
+    request_logger.setLevel(logging.INFO)
+    request_logger.addHandler(request_handler)
+    request_logger.addHandler(logging.StreamHandler())
+
+    # SQL生成日志
+    sql_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(LOG_DIR, 'sql.log'),
+        maxBytes=10*1024*1024,
+        backupCount=10,
+        encoding='utf-8'
+    )
+    sql_handler.setFormatter(formatter)
+    sql_handler.setLevel(logging.INFO)
+
+    sql_logger = logging.getLogger('app.sql')
+    sql_logger.setLevel(logging.INFO)
+    sql_logger.addHandler(sql_handler)
+    sql_logger.addHandler(logging.StreamHandler())
+
+    # 视图日志
+    view_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(LOG_DIR, 'views.log'),
+        maxBytes=10*1024*1024,
+        backupCount=10,
+        encoding='utf-8'
+    )
+    view_handler.setFormatter(formatter)
+    view_handler.setLevel(logging.INFO)
+
+    view_logger = logging.getLogger('app.view')
+    view_logger.setLevel(logging.INFO)
+    view_logger.addHandler(view_handler)
+    view_logger.addHandler(logging.StreamHandler())
+
+    # 错误日志
+    error_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(LOG_DIR, 'errors.log'),
+        maxBytes=10*1024*1024,
+        backupCount=10,
+        encoding='utf-8'
+    )
+    error_handler.setFormatter(formatter)
+    error_handler.setLevel(logging.ERROR)
+
+    error_logger = logging.getLogger('app.error')
+    error_logger.setLevel(logging.ERROR)
+    error_logger.addHandler(error_handler)
+    error_logger.addHandler(logging.StreamHandler())
+
+    # 写入启动日志验证
+    request_logger.info('='*80)
+    request_logger.info('日志系统初始化成功 - 请求日志')
+    request_logger.info(f'日志目录: {LOG_DIR}')
+    request_logger.info('='*80)
+
+    sql_logger.info('='*80)
+    sql_logger.info('日志系统初始化成功 - SQL日志')
+    sql_logger.info('='*80)
+
+    view_logger.info('='*80)
+    view_logger.info('日志系统初始化成功 - 视图日志')
+    view_logger.info('='*80)
+
+
+# 立即初始化日志
+setup_logging()

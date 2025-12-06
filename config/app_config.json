@@ -9,6 +9,11 @@
     "importance": true,
     "enddate": true,
     "erp": true,
-    "price_type": true
+    "price_type": true,
+    "use_list": true,
+    "appr_state": true,
+    "contract_terminate": true,
+    "sourcing_terminate": true,
+    "project_round": true
   }
 }

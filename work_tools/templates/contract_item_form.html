@@ -159,6 +159,23 @@
           </div>
         </div>
       </form>
+
+      {% if saved_file %}
+      <div
+        style="
+          margin-top: 20px;
+          padding: 15px;
+          background: #d4edda;
+          border-radius: 8px;
+          border: 1px solid #c3e6cb;
+        "
+      >
+        <strong style="color: #155724">✅ SQL文件已生成</strong>
+        <div style="margin-top: 8px; color: #155724; font-size: 13px">
+          保存位置: {{ saved_file }}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <script>

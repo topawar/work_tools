@@ -1,22 +1,78 @@
- 
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>合同预算修改</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
-      body { background-color: #f8f9fa; padding: 15px; }
-      .form-container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-      h2 { text-align: center; margin-bottom: 20px; font-size: 20px; color: #333; }
-      .form-row { display: flex; gap: 15px; margin-bottom: 10px; align-items: flex-end; }
-      .form-col { flex: 1; }
-      .form-control { padding: 6px 8px; font-size: 14px; border-radius: 4px; }
-      .submit-btn { width: 100%; padding: 8px; background-color: #2563eb; border: none; color: white; border-radius: 6px; font-weight: 600; margin-top: 10px; }
-      .clear-btn { display: inline-block; width: 100%; padding: 8px; background-color: #dc3545; color: white; border-radius: 4px; font-weight: 600; text-align: center; margin-top: 10px; text-decoration: none; }
-      .section-divider { margin: 15px 0; padding: 8px 0; font-weight: 600; border-bottom: 2px solid #2563eb; font-size: 16px; }
-      .form-text { font-size: 12px; }
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 20px;
+        color: #333;
+      }
+      .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        align-items: flex-end;
+      }
+      .form-col {
+        flex: 1;
+      }
+      .form-control {
+        padding: 6px 8px;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 8px;
+        background-color: #2563eb;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+      .clear-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 8px;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 4px;
+        font-weight: 600;
+        text-align: center;
+        margin-top: 10px;
+        text-decoration: none;
+      }
+      .section-divider {
+        margin: 15px 0;
+        padding: 8px 0;
+        font-weight: 600;
+        border-bottom: 2px solid #2563eb;
+        font-size: 16px;
+      }
+      .form-text {
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -28,39 +84,79 @@
         {% csrf_token %}
 
         <div class="form-row">
-          <div class="form-col">{{ form.dynamic_id.label_tag }}<br />{{ form.dynamic_id }}</div>
-          <div class="form-col">{{ form.ops_remark.label_tag }}<br />{{ form.ops_remark }}</div>
+          <div class="form-col">
+            {{ form.dynamic_id.label_tag }}<br />{{ form.dynamic_id }}
+          </div>
+          <div class="form-col">
+            {{ form.ops_remark.label_tag }}<br />{{ form.ops_remark }}
+          </div>
         </div>
 
         <div class="section-divider">合同号（可选）</div>
-        <div class="form-col">{{ form.contract_bpo_id.label_tag }}<br />{{ form.contract_bpo_id }}</div>
+        <div class="form-col">
+          {{ form.contract_bpo_id.label_tag }}<br />{{ form.contract_bpo_id }}
+        </div>
 
         <div class="section-divider">单条标段与供应商</div>
         <div class="form-row">
-          <div class="form-col">{{ form.section_no.label_tag }}<br />{{ form.section_no }}</div>
-          <div class="form-col">{{ form.supplier_id.label_tag }}<br />{{ form.supplier_id }}</div>
+          <div class="form-col">
+            {{ form.section_no.label_tag }}<br />{{ form.section_no }}
+          </div>
+          <div class="form-col">
+            {{ form.supplier_id.label_tag }}<br />{{ form.supplier_id }}
+          </div>
         </div>
         <div class="form-row">
-          <div class="form-col">{{ form.new_budget.label_tag }}<br />{{ form.new_budget }}</div>
-          <div class="form-col">{{ form.orig_budget.label_tag }}<br />{{ form.orig_budget }}</div>
+          <div class="form-col">
+            {{ form.new_budget.label_tag }}<br />{{ form.new_budget }}
+          </div>
+          <div class="form-col">
+            {{ form.orig_budget.label_tag }}<br />{{ form.orig_budget }}
+          </div>
         </div>
 
         <div class="section-divider">批量导入</div>
         <div class="form-col">
           {{ form.excel_file.label_tag }}<br />
           {{ form.excel_file }}
-          <div class="form-text">{{ form.excel_file.help_text }} <a href="{% url 'download_budget_template' %}">下载Excel模板</a></div>
+          <div class="form-text">
+            {{ form.excel_file.help_text }}
+            <a href="{% url 'download_budget_template' %}">下载Excel模板</a>
+          </div>
         </div>
 
         {% if form.non_field_errors %}
-        <div class="alert alert-danger" style="margin-top: 10px">{{ form.non_field_errors }}</div>
+        <div class="alert alert-danger" style="margin-top: 10px">
+          {{ form.non_field_errors }}
+        </div>
         {% endif %}
 
-        <div class="form-row" style="gap:10px">
-          <div class="form-col"><button type="submit" class="submit-btn">生成 SQL</button></div>
-          <div class="form-col"><a href="?clear=1" class="clear-btn">清除</a></div>
+        <div class="form-row" style="gap: 10px">
+          <div class="form-col">
+            <button type="submit" class="submit-btn">生成 SQL</button>
+          </div>
+          <div class="form-col">
+            <a href="?clear=1" class="clear-btn">清除</a>
+          </div>
         </div>
       </form>
+
+      {% if saved_file %}
+      <div
+        style="
+          margin-top: 20px;
+          padding: 15px;
+          background: #d4edda;
+          border-radius: 8px;
+          border: 1px solid #c3e6cb;
+        "
+      >
+        <strong style="color: #155724">✅ SQL文件已生成</strong>
+        <div style="margin-top: 8px; color: #155724; font-size: 13px">
+          保存位置: {{ saved_file }}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </body>
 </html>

@@ -6,8 +6,14 @@
     <title>SQL合并策略</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
-      body { background-color: #f8f9fa; padding: 15px; }
-      .card { max-width: 720px; margin: 0 auto; }
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .card {
+        max-width: 720px;
+        margin: 0 auto;
+      }
     </style>
   </head>
   <body>
@@ -19,8 +25,10 @@
           <button type="button" class="btn btn-outline-primary btn-sm" id="btnCheckAll">全选</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUncheckAll">全部不选</button>
         </div>
-        {% if error %}
-        <div id="saveError" class="save-notice">{{ error }}</div>
+        {% if saved %}
+        <div id="saveSuccess" class="save-notice save-success">配置保存成功！</div>
+        {% endif %} {% if error %}
+        <div id="saveError" class="save-notice save-error">{{ error }}</div>
         {% endif %}
         <form method="post">
           {% csrf_token %}
@@ -34,12 +42,64 @@
             </div>
             <div class="row">
               <div class="col-md-6">
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_price" id="mod_price" data-group="contract" {% if cfg.MERGE_MODULES.price %}checked{% endif %}><label class="form-check-label" for="mod_price">明细单价修改</label></div>
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_item" id="mod_item" data-group="contract" {% if cfg.MERGE_MODULES.item %}checked{% endif %}><label class="form-check-label" for="mod_item">物资编码修改</label></div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_price" id="mod_price" data-group="contract" {% if cfg.MERGE_MODULES.price %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_price">明细单价修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_item" id="mod_item" data-group="contract" {% if cfg.MERGE_MODULES.item %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_item">物资编码修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_use_list" id="mod_use_list" data-group="contract" {% if cfg.MERGE_MODULES.use_list %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_use_list">适用清单修改</label>
+                </div>
               </div>
               <div class="col-md-6">
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_budget" id="mod_budget" data-group="contract" {% if cfg.MERGE_MODULES.budget %}checked{% endif %}><label class="form-check-label" for="mod_budget">合同预算修改</label></div>
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_enddate" id="mod_enddate" data-group="contract" {% if cfg.MERGE_MODULES.enddate %}checked{% endif %}><label class="form-check-label" for="mod_enddate">合同失效日期修改</label></div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_budget" id="mod_budget" data-group="contract" {% if cfg.MERGE_MODULES.budget %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_budget">合同预算修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_enddate" id="mod_enddate" data-group="contract" {% if cfg.MERGE_MODULES.enddate %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_enddate">合同失效日期修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_appr_state" id="mod_appr_state" data-group="contract" {% if cfg.MERGE_MODULES.appr_state %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_appr_state">合同状态修改</label>
+                </div>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="mod_contract_terminate"
+                    id="mod_contract_terminate"
+                    data-group="contract"
+                    {%
+                    if
+                    cfg.MERGE_MODULES.contract_terminate
+                    %}checked{%
+                    endif
+                    %}
+                  />
+                  <label class="form-check-label" for="mod_contract_terminate">终止合同</label>
+                </div>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="mod_sourcing_terminate"
+                    id="mod_sourcing_terminate"
+                    data-group="contract"
+                    {%
+                    if
+                    cfg.MERGE_MODULES.sourcing_terminate
+                    %}checked{%
+                    endif
+                    %}
+                  />
+                  <label class="form-check-label" for="mod_sourcing_terminate">终止简化寻源合同</label>
+                </div>
               </div>
             </div>
           </div>
@@ -53,53 +113,109 @@
             </div>
             <div class="row">
               <div class="col-md-6">
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_unit" id="mod_unit" data-group="sourcing" {% if cfg.MERGE_MODULES.unit %}checked{% endif %}><label class="form-check-label" for="mod_unit">合同起草、签约单位修改</label></div>
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_gov" id="mod_gov" data-group="sourcing" {% if cfg.MERGE_MODULES.gov %}checked{% endif %}><label class="form-check-label" for="mod_gov">是否报送国资委</label></div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_unit" id="mod_unit" data-group="sourcing" {% if cfg.MERGE_MODULES.unit %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_unit">合同起草、签约单位修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_gov" id="mod_gov" data-group="sourcing" {% if cfg.MERGE_MODULES.gov %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_gov">是否报送国资委</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_importance" id="mod_importance" data-group="sourcing" {% if cfg.MERGE_MODULES.importance %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_importance">物项重要性修改</label>
+                </div>
               </div>
               <div class="col-md-6">
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_importance" id="mod_importance" data-group="sourcing" {% if cfg.MERGE_MODULES.importance %}checked{% endif %}><label class="form-check-label" for="mod_importance">物项重要性修改</label></div>
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_price_type" id="mod_price_type" data-group="sourcing" {% if cfg.MERGE_MODULES.price_type %}checked{% endif %}><label class="form-check-label" for="mod_price_type">浮动单价类型修改</label></div>
-                <div class="form-check"><input class="form-check-input" type="checkbox" name="mod_erp" id="mod_erp" data-group="sourcing" {% if cfg.MERGE_MODULES.erp %}checked{% endif %}><label class="form-check-label" for="mod_erp">核电ERP终止</label></div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_price_type" id="mod_price_type" data-group="sourcing" {% if cfg.MERGE_MODULES.price_type %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_price_type">浮动单价类型修改</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_erp" id="mod_erp" data-group="sourcing" {% if cfg.MERGE_MODULES.erp %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_erp">核电ERP终止</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="mod_project_round" id="mod_project_round" data-group="sourcing" {% if cfg.MERGE_MODULES.project_round %}checked{% endif %} />
+                  <label class="form-check-label" for="mod_project_round">项目轮次</label>
+                </div>
               </div>
             </div>
           </div>
           <button type="submit" class="btn btn-primary">保存</button>
         </form>
-    </div>
+      </div>
     </div>
     <script>
-      (function(){
+      (function () {
         var all = Array.prototype.slice.call(document.querySelectorAll('input.form-check-input[type="checkbox"][name^="mod_"]'));
-        var btnAll = document.getElementById('btnCheckAll');
-        var btnNone = document.getElementById('btnUncheckAll');
-        function setAll(val){ all.forEach(function(el){ el.checked = val; }); }
-        if(btnAll){ btnAll.addEventListener('click', function(){ setAll(true); }); }
-        if(btnNone){ btnNone.addEventListener('click', function(){ setAll(false); }); }
-        var toggles = Array.prototype.slice.call(document.querySelectorAll('[data-group-toggle]'));
-        toggles.forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var group = btn.getAttribute('data-group-toggle');
-            var action = btn.getAttribute('data-action');
-            var items = Array.prototype.slice.call(document.querySelectorAll('input.form-check-input[type="checkbox"][data-group="'+group+'"]'));
-            var val = action === 'check';
-            items.forEach(function(el){ el.checked = val; });
+        var btnAll = document.getElementById("btnCheckAll");
+        var btnNone = document.getElementById("btnUncheckAll");
+        function setAll(val) {
+          all.forEach(function (el) {
+            el.checked = val;
+          });
+        }
+        if (btnAll) {
+          btnAll.addEventListener("click", function () {
+            setAll(true);
+          });
+        }
+        if (btnNone) {
+          btnNone.addEventListener("click", function () {
+            setAll(false);
+          });
+        }
+        var toggles = Array.prototype.slice.call(document.querySelectorAll("[data-group-toggle]"));
+        toggles.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var group = btn.getAttribute("data-group-toggle");
+            var action = btn.getAttribute("data-action");
+            var items = Array.prototype.slice.call(document.querySelectorAll('input.form-check-input[type="checkbox"][data-group="' + group + '"]'));
+            var val = action === "check";
+            items.forEach(function (el) {
+              el.checked = val;
+            });
           });
         });
-        var err = document.getElementById('saveError');
-        if (err) {
-          setTimeout(function(){
-            err.style.opacity = '0';
-            setTimeout(function(){ if (err && err.parentNode) err.parentNode.removeChild(err); }, 300);
-          }, 2500);
+
+        // 处理成功和错误消息自动消失
+        var success = document.getElementById("saveSuccess");
+        var err = document.getElementById("saveError");
+
+        function fadeOut(el) {
+          if (el) {
+            setTimeout(function () {
+              el.style.opacity = "0";
+              setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, 2500);
+          }
         }
+
+        fadeOut(success);
+        fadeOut(err);
       })();
     </script>
     <style>
       .save-notice {
-        position: fixed; right: 16px; top: 16px; z-index: 9999;
-        background: #dc3545; color: #fff; padding: 10px 14px; border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.15); transition: opacity .3s ease;
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        z-index: 9999;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: opacity 0.3s ease;
+      }
+      .save-success {
+        background: #28a745;
+      }
+      .save-error {
+        background: #dc3545;
       }
     </style>
   </body>
- </html>
+</html>
