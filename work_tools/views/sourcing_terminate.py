@@ -24,14 +24,20 @@ except ImportError:
 logger = logging.getLogger('work_tools.view')
 sql_logger = logging.getLogger('work_tools.sql')
 
-# 状态值映射字典 - 用于Excel解析
-SOURCING_STATUS_MAP = {v: k for k, v in BID_STATUS_CHOICES if k}
-
 
 def parse_sourcing_terminate_excel(file):
     """解析Excel文件,提取终止简化寻源合同数据"""
     if not OPENPYXL_AVAILABLE:
         raise ValueError("缺少 openpyxl，无法解析 Excel")
+
+    # 从数据库加载中标状态配置构建映射字典
+    try:
+        from ..dropdown_utils import get_dropdown_options
+        options = get_dropdown_options('bid_status', include_empty=False)
+        SOURCING_STATUS_MAP = {label: code for code, label in options if code}
+    except Exception:
+        # 回退到硬编码映射
+        SOURCING_STATUS_MAP = {v: k for k, v in BID_STATUS_CHOICES if k}
 
     wb = openpyxl.load_workbook(file)
     ws = wb.active
@@ -241,7 +247,8 @@ def sourcing_terminate_view(request):
                         'purchase_package_no': cd.get('purchase_package_no'),
                     }
                     if cd.get('orig_sourcing_status'):
-                        rec['orig_sourcing_status'] = cd.get('orig_sourcing_status')
+                        rec['orig_sourcing_status'] = cd.get(
+                            'orig_sourcing_status')
                     records = [rec]
                     logger.info(
                         f"[终止简化寻源] 单条模式, bpo_id={rec['bpo_id']}, package_no={rec['purchase_package_no']}")

@@ -24,14 +24,20 @@ except ImportError:
 logger = logging.getLogger('work_tools.view')
 sql_logger = logging.getLogger('work_tools.sql')
 
-# 状态值映射字典 - 用于Excel解析
-STATE_MAP = {v: k for k, v in APPR_STATE_CHOICES if k}
-
 
 def parse_appr_state_excel(file):
     """解析Excel文件,提取合同状态修改数据"""
     if not OPENPYXL_AVAILABLE:
         raise ValueError("缺少 openpyxl，无法解析 Excel")
+
+    # 从数据库加载合同状态配置构建映射字典
+    try:
+        from ..dropdown_utils import get_dropdown_options
+        options = get_dropdown_options('contract_status', include_empty=False)
+        STATE_MAP = {label: code for code, label in options if code}
+    except Exception:
+        # 回退到硬编码映射
+        STATE_MAP = {v: k for k, v in APPR_STATE_CHOICES if k}
 
     wb = openpyxl.load_workbook(file)
     ws = wb.active
@@ -285,6 +291,14 @@ def appr_state_change_view(request):
     """合同状态修改视图"""
     saved_file = None
     
+    # 加载合同状态选项传递给模板
+    try:
+        from ..dropdown_utils import get_dropdown_options
+        contract_status_options = get_dropdown_options('contract_status', include_empty=True, empty_label='请选择合同状态')
+    except Exception:
+        # 回退到硬编码选项
+        contract_status_options = APPR_STATE_CHOICES
+    
     if request.method == 'POST':
         form = ApprStateChangeForm(request.POST, request.FILES)
         if form.is_valid():
@@ -337,6 +351,7 @@ def appr_state_change_view(request):
         'saved_file': saved_file,
         'active_menu': 'appr_state_change',
         'sidebar_groups': SIDEBAR_GROUPS,
+        'contract_status_options': contract_status_options,
     })
 
 

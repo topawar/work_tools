@@ -4,8 +4,14 @@
 """
 import os
 import re
+import logging
 from datetime import datetime
+from django.http import FileResponse, Http404
+from django.conf import settings
 from ..models import OrgDetail
+from ..config import get_config
+
+logger = logging.getLogger('work_tools.view')
 
 
 # SQL文件保存基础目录
@@ -13,28 +19,72 @@ SQL_BASE_DIR = r"D:\临时文件"
 
 
 def save_sql_file(sql_content, prefix='sql', dynamic_id=None):
-    """
-    保存SQL内容到固定目录
+    r"""
+    保存SQL内容到配置的目录
     返回文件路径
-    保存位置: D:\临时文件\{YYYYMM}\{DD}\{filename}.sql
+    
+    支持两种模式：
+    - hierarchical: 按日期分层 {BASE_PATH}/{YYYYMM}/{DD}/{filename}.sql
+    - flat: 单一文件夹 {BASE_PATH}/{filename}.sql
     """
-    now = datetime.now()
-    year_month = now.strftime('%Y%m')
-    day = now.strftime('%d')
-    target_dir = os.path.join(SQL_BASE_DIR, year_month, day)
-    os.makedirs(target_dir, exist_ok=True)
-
-    if dynamic_id:
-        filename = f'{dynamic_id}_{prefix}.sql'
-    else:
-        timestamp = now.strftime('%H%M%S')
-        filename = f'{prefix}_{timestamp}.sql'
-
-    filepath = os.path.join(target_dir, filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(sql_content)
-
-    return filepath
+    try:
+        # 读取配置
+        cfg = get_config()
+        base_path = cfg.get('SQL_OUTPUT_BASE_PATH', r'D:\临时文件')
+        mode = cfg.get('SQL_OUTPUT_MODE', 'hierarchical')
+        date_format = cfg.get('SQL_OUTPUT_DATE_FORMAT', '%Y%m/%d')
+        
+        now = datetime.now()
+        
+        # 根据模式生成目标路径
+        if mode == 'flat':
+            # 单一文件夹模式
+            target_dir = base_path
+        else:
+            # 按日期分层模式（默认）
+            date_subdir = now.strftime(date_format)
+            target_dir = os.path.join(base_path, date_subdir)
+        
+        # 创建目录
+        os.makedirs(target_dir, exist_ok=True)
+        
+        # 生成文件名
+        if dynamic_id:
+            filename = f'{dynamic_id}_{prefix}.sql'
+        else:
+            timestamp = now.strftime('%H%M%S')
+            filename = f'{prefix}_{timestamp}.sql'
+        
+        # 完整文件路径
+        filepath = os.path.join(target_dir, filename)
+        
+        # 写入文件
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(sql_content)
+        
+        logger.info(f"[文件保存] SQL文件已保存: {filepath}")
+        return filepath
+        
+    except Exception as e:
+        # 失败时回退到默认路径
+        logger.error(f"[文件保存] 使用配置路径失败，回退到默认路径: {str(e)}")
+        now = datetime.now()
+        year_month = now.strftime('%Y%m')
+        day = now.strftime('%d')
+        target_dir = os.path.join(r'D:\临时文件', year_month, day)
+        os.makedirs(target_dir, exist_ok=True)
+        
+        if dynamic_id:
+            filename = f'{dynamic_id}_{prefix}.sql'
+        else:
+            timestamp = now.strftime('%H%M%S')
+            filename = f'{prefix}_{timestamp}.sql'
+        
+        filepath = os.path.join(target_dir, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(sql_content)
+        
+        return filepath
 
 
 def parse_ops_remark(remark):
@@ -102,6 +152,57 @@ def normalize_item_id(value):
     return s
 
 
+def download_validation_failure_view(request):
+    """
+    下载校验失败文件
+    
+    安全性考虑：
+    - 仅允许下载validation_failures目录下的文件
+    - 验证文件名格式（必须以validation_failed_开头且为.xlsx后缀）
+    - 下载后删除临时文件
+    """
+    filename = request.GET.get('file', '').strip()
+    
+    # 验证文件名格式（安全性检查）
+    if not filename:
+        raise Http404("文件不存在")
+    
+    # 防止路径遍历攻击
+    if '..' in filename or '/' in filename or '\\' in filename:
+        logger.warning(f"检测到非法文件名访问: {filename}")
+        raise Http404("非法文件名")
+    
+    # 验证文件名前缀和后缀
+    if not filename.startswith('validation_failed_') or not filename.endswith('.xlsx'):
+        logger.warning(f"文件名格式不正确: {filename}")
+        raise Http404("文件格式不正确")
+    
+    # 构建文件路径
+    temp_dir = os.path.join(settings.BASE_DIR, 'temp_uploads', 'validation_failures')
+    filepath = os.path.join(temp_dir, filename)
+    
+    # 检查文件是否存在
+    if not os.path.exists(filepath):
+        logger.warning(f"文件不存在: {filepath}")
+        raise Http404("文件不存在或已过期")
+    
+    try:
+        # 返回文件
+        response = FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
+        response['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        
+        # 下载后删除文件（可选，可以通过定时任务清理）
+        # os.remove(filepath)
+        # logger.info(f"文件下载完成并已删除: {filename}")
+        
+        logger.info(f"文件下载成功: {filename}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"文件下载失败: {filename}, error={str(e)}")
+        raise Http404("文件读取失败")
+
+
 __all__ = [
     'parse_ops_remark',
     'extract_company_code',
@@ -109,5 +210,6 @@ __all__ = [
     '_unique_code_by_name',
     'normalize_item_id',
     'save_sql_file',
+    'download_validation_failure_view',
     'SQL_BASE_DIR',
 ]

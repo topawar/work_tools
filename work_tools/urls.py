@@ -65,6 +65,10 @@ urlpatterns = [
     path('jobs/<int:job_id>/delete/', view.job_delete_view, name='job_delete'),
     path('jobs/<int:job_id>/fail/', view.job_fail_view, name='job_fail'),
     path('system/config/', view.system_config_view, name='system_config'),
+    path('system/file-path/', view.file_path_config_view, name='file_path_config'),
+    path('system/cleanup/', view.cleanup_config_view, name='cleanup_config'),
+    path('system/select-folder/', view.select_folder_api, name='select_folder'),
+    path('system/cleanup-now/', view.cleanup_now_view, name='cleanup_now'),
     path('appr-state/change/', view.appr_state_change_view,
          name='appr_state_change'),
     path('appr-state/template/', view.download_appr_state_template,
@@ -81,4 +85,18 @@ urlpatterns = [
          name='project_round'),
     path('project/round/template/', view.download_project_round_template,
          name='download_project_round_template'),
+    
+    # 校验失败文件下载
+    path('download_validation_failure/', view.download_validation_failure_view,
+         name='download_validation_failure'),
+    
+    # 下拉框配置管理
+    path('dropdown-config/', view.dropdown_config_view, name='dropdown_config'),
+    path('dropdown-config/group/add/', view.dropdown_group_add, name='dropdown_group_add'),
+    path('dropdown-config/group/edit/', view.dropdown_group_edit, name='dropdown_group_edit'),
+    path('dropdown-config/group/toggle/', view.dropdown_group_toggle, name='dropdown_group_toggle'),
+    path('dropdown-config/item/add/', view.dropdown_item_add, name='dropdown_item_add'),
+    path('dropdown-config/item/edit/', view.dropdown_item_edit, name='dropdown_item_edit'),
+    path('dropdown-config/item/delete/', view.dropdown_item_delete, name='dropdown_item_delete'),
+    path('dropdown-config/item/toggle/', view.dropdown_item_toggle, name='dropdown_item_toggle'),
 ]

@@ -15,5 +15,10 @@
     "contract_terminate": true,
     "sourcing_terminate": true,
     "project_round": true
-  }
+  },
+  "SQL_OUTPUT_BASE_PATH": "D:\\临时文件",
+  "SQL_OUTPUT_MODE": "hierarchical",
+  "SQL_OUTPUT_DATE_FORMAT": "%Y%m/%d",
+  "TEMP_FILE_CLEANUP_ENABLED": true,
+  "TEMP_FILE_RETENTION_HOURS": 24
 }

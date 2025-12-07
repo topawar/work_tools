@@ -1,6 +1,9 @@
 import json
 import os
+import logging
 from django.conf import settings
+
+logger = logging.getLogger('work_tools.config')
 
 DEFAULT = {
     'MERGE_MAX_IN_SIZE': 500,
@@ -19,7 +22,14 @@ DEFAULT = {
         'contract_terminate': True,
         'sourcing_terminate': True,
         'project_round': True,
-    }
+    },
+    # SQL文件输出配置
+    'SQL_OUTPUT_BASE_PATH': r'D:\临时文件',
+    'SQL_OUTPUT_MODE': 'hierarchical',  # 'flat' 或 'hierarchical'
+    'SQL_OUTPUT_DATE_FORMAT': '%Y%m/%d',  # 日期子目录格式
+    # 临时文件清理配置
+    'TEMP_FILE_CLEANUP_ENABLED': True,
+    'TEMP_FILE_RETENTION_HOURS': 24,
 }
 
 
@@ -30,21 +40,144 @@ def _path():
     return os.path.join(cfg_dir, 'app_config.json')
 
 
+def validate_config(cfg):
+    """验证配置的完整性和正确性
+    
+    Args:
+        cfg: 配置字典
+    
+    Returns:
+        dict: {'valid': bool, 'errors': list, 'warnings': list}
+    """
+    errors = []
+    warnings = []
+    
+    # 检查必需的顶级键
+    required_keys = ['MERGE_MAX_IN_SIZE', 'MERGE_MODULES', 'SQL_OUTPUT_BASE_PATH', 
+                     'SQL_OUTPUT_MODE', 'SQL_OUTPUT_DATE_FORMAT',
+                     'TEMP_FILE_CLEANUP_ENABLED', 'TEMP_FILE_RETENTION_HOURS']
+    
+    for key in required_keys:
+        if key not in cfg:
+            errors.append(f"缺少必需配置项: {key}")
+    
+    # 检查MERGE_MODULES完整性
+    if 'MERGE_MODULES' in cfg:
+        default_modules = set(DEFAULT['MERGE_MODULES'].keys())
+        config_modules = set(cfg['MERGE_MODULES'].keys())
+        missing_modules = default_modules - config_modules
+        
+        if missing_modules:
+            warnings.append(f"MERGE_MODULES缺少模块: {missing_modules}")
+        
+        # 检查模块值类型
+        for mod_name, mod_val in cfg['MERGE_MODULES'].items():
+            if not isinstance(mod_val, bool):
+                errors.append(f"MERGE_MODULES.{mod_name} 值类型错误，应为bool")
+    
+    # 检查值类型
+    if 'MERGE_MAX_IN_SIZE' in cfg and not isinstance(cfg['MERGE_MAX_IN_SIZE'], int):
+        errors.append("MERGE_MAX_IN_SIZE 应为整数")
+    
+    if 'TEMP_FILE_RETENTION_HOURS' in cfg and not isinstance(cfg['TEMP_FILE_RETENTION_HOURS'], int):
+        errors.append("TEMP_FILE_RETENTION_HOURS 应为整数")
+    
+    return {
+        'valid': len(errors) == 0,
+        'errors': errors,
+        'warnings': warnings
+    }
+
+
+def get_module_names():
+    """获取所有MERGE_MODULES模块名称列表
+    
+    Returns:
+        list: 模块名称列表
+    """
+    return list(DEFAULT['MERGE_MODULES'].keys())
+
+
 def get_config():
+    """获取配置，从文件读取并与DEFAULT合并，确保配置完整性"""
     p = _path()
     if os.path.exists(p):
         try:
             with open(p, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            return {**DEFAULT, **data}
-        except Exception:
+            # 合并配置：DEFAULT提供基础，data覆盖DEFAULT
+            merged = {**DEFAULT, **data}
+            
+            # 确保MERGE_MODULES包含所有DEFAULT中的模块
+            if 'MERGE_MODULES' in merged:
+                merged['MERGE_MODULES'] = {**DEFAULT['MERGE_MODULES'], **merged.get('MERGE_MODULES', {})}
+            
+            logger.debug(f"[配置加载] 从文件加载配置: {p}")
+            return merged
+        except Exception as e:
+            logger.error(f"[配置加载] 读取配置文件失败: {e}, 使用默认配置")
             return DEFAULT.copy()
+    logger.debug(f"[配置加载] 配置文件不存在，使用默认配置")
     return DEFAULT.copy()
 
 
 def set_config(cfg):
-    data = {**DEFAULT, **(cfg or {})}
+    """保存配置到文件
+    
+    Args:
+        cfg: 完整的配置字典（应该已经包含所有必需的配置项）
+    
+    Returns:
+        保存的配置字典
+    """
+    if not cfg:
+        logger.warning("[配置保存] 传入空配置，使用默认配置")
+        cfg = DEFAULT.copy()
+    
+    # 验证配置完整性
+    validation_result = validate_config(cfg)
+    if not validation_result['valid']:
+        logger.error(f"[配置保存] 配置验证失败: {validation_result['errors']}")
+        # 补全缺失的配置项
+        for key in DEFAULT:
+            if key not in cfg:
+                cfg[key] = DEFAULT[key]
+                logger.warning(f"[配置保存] 补全缺失配置项: {key}")
+    
     p = _path()
-    with open(p, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return data
+    
+    # 保存前日志
+    logger.info(f"[配置保存] 准备保存配置到: {p}")
+    logger.debug(f"[配置保存] 配置内容: {cfg}")
+    
+    try:
+        # 原子性写入：先写临时文件，成功后重命名
+        temp_path = p + '.tmp'
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        
+        # 重命名为正式文件
+        if os.path.exists(p):
+            os.replace(temp_path, p)
+        else:
+            os.rename(temp_path, p)
+        
+        logger.info(f"[配置保存] 配置保存成功")
+        
+        # 保存后验证
+        saved_cfg = get_config()
+        if saved_cfg.get('MERGE_MODULES') != cfg.get('MERGE_MODULES'):
+            logger.error(f"[配置保存] 验证失败：保存的配置与预期不一致")
+        else:
+            logger.debug(f"[配置保存] 验证成功：配置已正确保存")
+        
+        return cfg
+    except Exception as e:
+        logger.error(f"[配置保存] 保存失败: {e}", exc_info=True)
+        # 清理临时文件
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except:
+                pass
+        raise

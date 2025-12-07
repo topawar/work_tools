@@ -99,7 +99,7 @@
         <br />
         1. 删除合同（设置alive_flag='0'和APPR_STATE='DELETE'）
         <br />
-        2. 回退简化寻源状态（从已签约50回退到中标40）
+        2. 回退简化寻源采购包状态（从已签约50回退到审批通过40）
         <br />
         <strong>请谨慎操作！</strong>
       </div>
@@ -137,15 +137,8 @@
           </div>
         </div>
 
-        <div class="form-col" style="margin-top: 15px">
-          {{ form.orig_sourcing_status.label_tag }}
-          <br />
-          <select name="orig_sourcing_status" id="id_orig_sourcing_status" class="form-control select2-search">
-            <option value="">请选择简化寻源状态</option>
-            <option value="40">中标</option>
-            <option value="50">已签约</option>
-          </select>
-        </div>
+        <!-- 状态固定为50-已签约，不需要选择 -->
+        <input type="hidden" name="orig_sourcing_status" value="50" />
 
         <!-- 批量导入 -->
         <div class="section-divider">批量导入</div>

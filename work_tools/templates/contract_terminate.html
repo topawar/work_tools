@@ -137,15 +137,8 @@
           </div>
         </div>
 
-        <div class="form-col" style="margin-top: 15px">
-          {{ form.orig_bid_status.label_tag }}
-          <br />
-          <select name="orig_bid_status" id="id_orig_bid_status" class="form-control select2-search">
-            <option value="">请选择中标状态</option>
-            <option value="40">中标</option>
-            <option value="50">已签约</option>
-          </select>
-        </div>
+        <!-- 状态固定为50-已签约，不需要选择 -->
+        <input type="hidden" name="orig_bid_status" value="50" />
 
         <!-- 批量导入 -->
         <div class="section-divider">批量导入</div>

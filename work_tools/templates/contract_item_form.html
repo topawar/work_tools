@@ -80,6 +80,44 @@
 
     <div class="form-container">
       <h2>合同物资编码修改</h2>
+      
+      <!-- 校验失败提示区域 -->
+      {% if validation_failure %}
+      <div
+        style="
+          margin-bottom: 20px;
+          padding: 15px;
+          background: #fff3cd;
+          border: 2px solid #ffc107;
+          border-radius: 8px;
+        "
+      >
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <span style="font-size: 24px; margin-right: 10px;">⚠️</span>
+          <strong style="color: #856404; font-size: 16px;">数据校验失败</strong>
+        </div>
+        <div style="color: #856404; font-size: 14px; margin-bottom: 10px;">
+          <div>总行数：{{ validation_failure.total }}</div>
+          <div>通过行数：{{ validation_failure.passed }}</div>
+          <div style="font-weight: bold;">失败行数：{{ validation_failure.failed }}</div>
+        </div>
+        <a 
+          href="{% url 'download_validation_failure' %}?file={{ validation_failure.filename }}"
+          style="
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #ffc107;
+            color: #000;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+          "
+        >
+          💾 下载包含错误信息的文件
+        </a>
+      </div>
+      {% endif %}
+      
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 

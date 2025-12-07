@@ -130,48 +130,18 @@
             {{ form.new_appr_state.label_tag }}
             <br />
             <select name="new_appr_state" id="id_new_appr_state" class="form-control select2-search">
-              <option value="">请选择合同状态</option>
-              <option value="DELETE">删除</option>
-              <option value="DRAFT">草稿</option>
-              <option value="SUPPAPPROVED">供应商已确认</option>
-              <option value="SUPPREFUSE">供应商拒绝</option>
-              <option value="WAITINGFORSUPP">待供应商确认</option>
-              <option value="INPROCESSING">审批中</option>
-              <option value="APPROVED">审批通过</option>
-              <option value="REJECT">驳回</option>
-              <option value="ECONSENDING">发送电子合同</option>
-              <option value="ECONSENDED">电子合同发送成功</option>
-              <option value="ECONSIGNED">已签约</option>
-              <option value="ACTIVE">生效</option>
-              <option value="REVISION">低版本修订</option>
-              <option value="CLOSEDFORCE">作废</option>
-              <option value="LOCK">冻结</option>
-              <option value="STOP">合同终止</option>
-              <option value="CLOSED">已失效</option>
+              {% for code, label in contract_status_options %}
+                <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="form-col">
             {{ form.orig_appr_state.label_tag }}
             <br />
             <select name="orig_appr_state" id="id_orig_appr_state" class="form-control select2-search">
-              <option value="">请选择合同状态</option>
-              <option value="DELETE">删除</option>
-              <option value="DRAFT">草稿</option>
-              <option value="SUPPAPPROVED">供应商已确认</option>
-              <option value="SUPPREFUSE">供应商拒绝</option>
-              <option value="WAITINGFORSUPP">待供应商确认</option>
-              <option value="INPROCESSING">审批中</option>
-              <option value="APPROVED">审批通过</option>
-              <option value="REJECT">驳回</option>
-              <option value="ECONSENDING">发送电子合同</option>
-              <option value="ECONSENDED">电子合同发送成功</option>
-              <option value="ECONSIGNED">已签约</option>
-              <option value="ACTIVE">生效</option>
-              <option value="REVISION">低版本修订</option>
-              <option value="CLOSEDFORCE">作废</option>
-              <option value="LOCK">冻结</option>
-              <option value="STOP">合同终止</option>
-              <option value="CLOSED">已失效</option>
+              {% for code, label in contract_status_options %}
+                <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
             </select>
           </div>
         </div>

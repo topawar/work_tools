@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>临时文件清理配置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .card {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">临时文件清理配置</h5>
+        <p class="text-muted">配置临时文件的自动清理策略</p>
+
+        {% if saved %}
+        <div id="saveSuccess" class="save-notice save-success">配置保存成功！</div>
+        {% endif %} 
+        {% if error %}
+        <div id="saveError" class="save-notice save-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="cleanup_enabled" 
+                     id="cleanup_enabled" {% if cfg.TEMP_FILE_CLEANUP_ENABLED %}checked{% endif %}>
+              <label class="form-check-label" for="cleanup_enabled">
+                <strong>启用自动清理</strong>
+              </label>
+            </div>
+            <div class="form-text" style="margin-left: 2.5em;">
+              启用后，系统将定期清理过期的临时文件（需配合系统定时任务）
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">文件保留时长</label>
+            <div class="input-group" style="max-width: 300px;">
+              <input type="number" class="form-control" name="retention_hours" 
+                     value="{{ cfg.TEMP_FILE_RETENTION_HOURS }}" 
+                     min="1" max="168" required>
+              <span class="input-group-text">小时</span>
+            </div>
+            <div class="form-text">
+              文件创建后超过此时长将被清理。范围：1-168小时（7天）
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <strong>📋 清理范围说明：</strong>
+            <ul class="mb-0 mt-2">
+              <li>校验失败文件（validation_failed_*.xlsx）</li>
+              <li>CSV导入临时文件（*.csv、tmp*.csv）</li>
+            </ul>
+          </div>
+
+          <div class="alert alert-warning">
+            <strong>⚙️ 定时任务配置：</strong>
+            <p class="mb-2">要启用自动清理，需要配置系统定时任务：</p>
+            <p class="mb-0">
+              <strong>Windows：</strong> 在任务计划程序中创建任务，每天执行<br>
+              <code>python manage.py cleanup_temp_files</code>
+            </p>
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <button type="button" class="btn btn-secondary ms-2" id="btnCleanupNow">立即执行清理</button>
+            <a href="/system/config/" class="btn btn-outline-secondary ms-2">返回</a>
+          </div>
+        </form>
+
+        <div class="mt-4" id="cleanupResult" style="display: none;">
+          <div class="alert alert-success">
+            <strong>✅ 清理完成</strong>
+            <pre id="cleanupOutput" class="mt-2 mb-0" style="font-size: 0.9em;"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        // 立即执行清理按钮
+        var btnCleanup = document.getElementById('btnCleanupNow');
+        var resultDiv = document.getElementById('cleanupResult');
+        var outputPre = document.getElementById('cleanupOutput');
+
+        if (btnCleanup) {
+          btnCleanup.addEventListener('click', function() {
+            if (!confirm('确定要立即执行清理任务吗？\n\n这将删除所有超过保留时长的临时文件。')) {
+              return;
+            }
+            
+            btnCleanup.disabled = true;
+            btnCleanup.textContent = '清理中...';
+            resultDiv.style.display = 'none';
+            
+            fetch('/system/cleanup-now/', {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+              }
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              btnCleanup.disabled = false;
+              btnCleanup.textContent = '立即执行清理';
+              
+              if (data.success) {
+                outputPre.textContent = data.output || '清理任务执行成功！';
+                resultDiv.style.display = 'block';
+                
+                // 3秒后隐藏结果
+                setTimeout(function() {
+                  resultDiv.style.display = 'none';
+                }, 5000);
+              } else {
+                alert('清理失败：' + (data.error || '未知错误'));
+              }
+            })
+            .catch(function(error) {
+              btnCleanup.disabled = false;
+              btnCleanup.textContent = '立即执行清理';
+              alert('清理失败：' + error.message);
+            });
+          });
+        }
+
+        // 处理成功和错误消息自动消失
+        var success = document.getElementById("saveSuccess");
+        var err = document.getElementById("saveError");
+
+        function fadeOut(el) {
+          if (el) {
+            setTimeout(function () {
+              el.style.opacity = "0";
+              setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, 2500);
+          }
+        }
+
+        fadeOut(success);
+        fadeOut(err);
+      })();
+    </script>
+    <style>
+      .save-notice {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        z-index: 9999;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: opacity 0.3s ease;
+      }
+      .save-success {
+        background: #28a745;
+      }
+      .save-error {
+        background: #dc3545;
+      }
+    </style>
+  </body>
+</html>

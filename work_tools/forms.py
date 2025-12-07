@@ -516,6 +516,19 @@ class GovReportForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.RadioSelect
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 从数据库动态加载报送选项
+        try:
+            from .dropdown_utils import get_dropdown_options
+            report_options = get_dropdown_options('report_choice', include_empty=False)
+            if report_options:
+                self.fields['report_choice'].choices = report_options
+                self.fields['orig_report_choice'].choices = report_options
+        except Exception:
+            # 加载失败时使用硬编码选项作为回退
+            pass
 
     excel_file = forms.FileField(
         label="或上传 Excel（列：采购方案编号/询价单编号/合同编号/是否报送(是/否)）",
@@ -588,6 +601,19 @@ class ImportanceForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 从数据库动态加载重要性选项
+        try:
+            from .dropdown_utils import get_dropdown_options
+            importance_options = get_dropdown_options('importance_level', include_empty=False)
+            if importance_options:
+                self.fields['importance_choice'].choices = importance_options
+                self.fields['orig_importance_choice'].choices = importance_options
+        except Exception:
+            # 加载失败时使用硬编码选项作为回退
+            pass
 
     excel_file = forms.FileField(
         label="或上传 Excel（列：采购方案编号/询价单编号/合同编号/物项重要性/原重要性）",
@@ -737,6 +763,19 @@ class ApprStateChangeForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 从数据库动态加载合同状态选项
+        try:
+            from .dropdown_utils import get_dropdown_options
+            status_options = get_dropdown_options('contract_status', include_empty=True, empty_label='请选择合同状态')
+            if status_options:
+                self.fields['new_appr_state'].choices = status_options
+                self.fields['orig_appr_state'].choices = status_options
+        except Exception:
+            # 加载失败时使用硬编码选项作为回退
+            pass
 
     # Excel批量导入
     excel_file = forms.FileField(
@@ -802,6 +841,18 @@ class ContractTerminateForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 从数据库动态加载中标状态选项
+        try:
+            from .dropdown_utils import get_dropdown_options
+            bid_status_options = get_dropdown_options('bid_status', include_empty=True, empty_label='请选择中标状态')
+            if bid_status_options:
+                self.fields['orig_bid_status'].choices = bid_status_options
+        except Exception:
+            # 加载失败时使用硬编码选项作为回退
+            pass
 
     # Excel批量导入
     excel_file = forms.FileField(
@@ -868,6 +919,18 @@ class SourcingTerminateForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 从数据库动态加载中标状态选项
+        try:
+            from .dropdown_utils import get_dropdown_options
+            bid_status_options = get_dropdown_options('bid_status', include_empty=True, empty_label='请选择简化寻源状态')
+            if bid_status_options:
+                self.fields['orig_sourcing_status'].choices = bid_status_options
+        except Exception:
+            # 加载失败时使用硬编码选项作为回退
+            pass
 
     # Excel批量导入
     excel_file = forms.FileField(

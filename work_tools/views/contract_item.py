@@ -11,6 +11,11 @@ from ..models import ItemDetail
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import parse_ops_remark, normalize_item_id, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path,
+)
 
 try:
     import openpyxl
@@ -19,6 +24,54 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 logger = logging.getLogger('work_tools.view')
+
+
+def validate_contract_item_records(records):
+    """
+    校验物资编码修改记录
+    
+    Args:
+        records: 解析后的记录列表
+        
+    Returns:
+        校验结果字典
+    """
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 从第2行开始（第1行是表头）
+        errors = []
+        
+        # 必填项校验：明细行ID
+        error = validate_required(record.get('line_id'), '明细行ID')
+        if error:
+            errors.append(error)
+        
+        # 记录校验结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_item_excel(file):
@@ -52,9 +105,8 @@ def parse_item_excel(file):
         if not row:
             continue
         lid = row[lid_idx]
-        if lid is None:
-            continue
-        rec = {'line_id': str(lid).strip()}
+        # 不过滤空行，留给校验函数处理
+        rec = {'line_id': str(lid).strip() if lid is not None else None}
         if new_id_idx is not None:
             rec['new_item_id'] = normalize_item_id(row[new_id_idx])
         if new_name_idx is not None:
@@ -211,6 +263,7 @@ def generate_item_sql_bulk(records, ops_remark=None):
 def contract_item_update_view(request):
     """合同物资编码修改视图"""
     saved_file = None
+    validation_failure = None
 
     if request.method == 'POST':
         form = ContractItemUpdateForm(request.POST, request.FILES)
@@ -220,6 +273,34 @@ def contract_item_update_view(request):
 
             if cd.get('excel_file'):
                 records = parse_item_excel(cd['excel_file'])
+                
+                # 执行数据校验
+                validation_result = validate_contract_item_records(records)
+                
+                if not validation_result['valid']:
+                    # 校验失败，生成包含错误信息的Excel文件
+                    temp_file = generate_validation_failure_excel(
+                        cd['excel_file'], 
+                        validation_result, 
+                        'contract_item'
+                    )
+                    
+                    if temp_file:
+                        validation_failure = {
+                            'total': validation_result['total'],
+                            'passed': validation_result['passed'],
+                            'failed': validation_result['failed'],
+                            'filename': get_temp_filename_from_path(temp_file)
+                        }
+                        logger.info(f"物资编码校验失败: 总行数={validation_failure['total']}, 失败行数={validation_failure['failed']}")
+                    
+                    # 不生成SQL，直接返回页面显示错误
+                    return render(request, 'contract_item_form.html', {
+                        'form': form,
+                        'validation_failure': validation_failure,
+                        'active_menu': 'contract_item',
+                        'sidebar_groups': SIDEBAR_GROUPS,
+                    })
             else:
                 rec = {
                     'line_id': cd['single_line_id'],
@@ -274,6 +355,7 @@ def contract_item_update_view(request):
     return render(request, 'contract_item_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'contract_item',
         'sidebar_groups': SIDEBAR_GROUPS,
     })

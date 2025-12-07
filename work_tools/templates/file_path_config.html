@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>文件路径配置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .card {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">SQL文件路径配置</h5>
+        <p class="text-muted">配置SQL文件的保存位置和组织方式</p>
+
+        {% if saved %}
+        <div id="saveSuccess" class="save-notice save-success">配置保存成功！</div>
+        {% endif %} 
+        {% if error %}
+        <div id="saveError" class="save-notice save-error">{{ error }}</div>
+        {% endif %}
+        {% if warning %}
+        <div class="alert alert-warning">{{ warning }}</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label class="form-label">SQL文件输出路径</label>
+            <div class="input-group">
+              <input type="text" class="form-control" name="sql_output_path" 
+                     id="sql_output_path"
+                     value="{{ cfg.SQL_OUTPUT_BASE_PATH }}" 
+                     placeholder="例如：D:\SQL输出"
+                     required>
+              <button class="btn btn-outline-secondary" type="button" id="btnSelectFolder">
+                📁 选择文件夹
+              </button>
+            </div>
+            <div class="form-text">
+              点击"选择文件夹"按钮可以通过系统文件管理器选择目录
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">路径组织模式</label>
+            <div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="sql_output_mode" 
+                       id="mode_flat" value="flat" 
+                       {% if cfg.SQL_OUTPUT_MODE == 'flat' %}checked{% endif %}>
+                <label class="form-check-label" for="mode_flat">
+                  <strong>单一文件夹模式</strong> - 所有SQL文件保存到同一目录
+                  <div class="text-muted" style="font-size: 0.9em; margin-left: 1.5em;">
+                    示例：D:\SQL输出\contract_price_143025.sql
+                  </div>
+                </label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="radio" name="sql_output_mode" 
+                       id="mode_hierarchical" value="hierarchical" 
+                       {% if cfg.SQL_OUTPUT_MODE != 'flat' %}checked{% endif %}>
+                <label class="form-check-label" for="mode_hierarchical">
+                  <strong>按日期分层模式</strong> - 自动在基础目录下创建日期子目录
+                  <div class="text-muted" style="font-size: 0.9em; margin-left: 1.5em;">
+                    示例：D:\SQL输出\202512\07\contract_price_143025.sql
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3" id="date_format_section">
+            <label class="form-label">日期格式（仅分层模式有效）</label>
+            <div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="sql_date_format" 
+                       id="format1" value="%Y%m/%d" 
+                       {% if cfg.SQL_OUTPUT_DATE_FORMAT == '%Y%m/%d' %}checked{% endif %}>
+                <label class="form-check-label" for="format1">
+                  年月/日 <span class="text-muted">(202512/07)</span>
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="sql_date_format" 
+                       id="format2" value="%Y%m%d" 
+                       {% if cfg.SQL_OUTPUT_DATE_FORMAT == '%Y%m%d' %}checked{% endif %}>
+                <label class="form-check-label" for="format2">
+                  年月日 <span class="text-muted">(20251207)</span>
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="sql_date_format" 
+                       id="format3" value="%Y/%m/%d" 
+                       {% if cfg.SQL_OUTPUT_DATE_FORMAT == '%Y/%m/%d' %}checked{% endif %}>
+                <label class="form-check-label" for="format3">
+                  年/月/日 <span class="text-muted">(2025/12/07)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary">保存配置</button>
+            <a href="/system/config/" class="btn btn-secondary">返回</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        // 路径模式切换逻辑
+        var flatMode = document.getElementById('mode_flat');
+        var hierarchicalMode = document.getElementById('mode_hierarchical');
+        var dateFormatSection = document.getElementById('date_format_section');
+
+        function updateDateFormatVisibility() {
+          if (flatMode && flatMode.checked) {
+            dateFormatSection.style.display = 'none';
+          } else {
+            dateFormatSection.style.display = 'block';
+          }
+        }
+
+        if (flatMode) flatMode.addEventListener('change', updateDateFormatVisibility);
+        if (hierarchicalMode) hierarchicalMode.addEventListener('change', updateDateFormatVisibility);
+        
+        // 初始化显示状态
+        updateDateFormatVisibility();
+
+        // 文件夹选择按钮
+        var btnSelectFolder = document.getElementById('btnSelectFolder');
+        var pathInput = document.getElementById('sql_output_path');
+
+        if (btnSelectFolder) {
+          btnSelectFolder.addEventListener('click', function() {
+            btnSelectFolder.disabled = true;
+            btnSelectFolder.textContent = '打开文件选择器...';
+
+            fetch('/system/select-folder/', {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+              }
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              btnSelectFolder.disabled = false;
+              btnSelectFolder.textContent = '📁 选择文件夹';
+
+              if (data.success && data.path) {
+                pathInput.value = data.path;
+              } else if (data.error && data.error !== '用户取消选择') {
+                alert('选择文件夹失败：' + data.error);
+              }
+            })
+            .catch(function(error) {
+              btnSelectFolder.disabled = false;
+              btnSelectFolder.textContent = '📁 选择文件夹';
+              alert('选择文件夹失败：' + error.message);
+            });
+          });
+        }
+
+        // 处理成功和错误消息自动消失
+        var success = document.getElementById("saveSuccess");
+        var err = document.getElementById("saveError");
+
+        function fadeOut(el) {
+          if (el) {
+            setTimeout(function () {
+              el.style.opacity = "0";
+              setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, 2500);
+          }
+        }
+
+        fadeOut(success);
+        fadeOut(err);
+      })();
+    </script>
+    <style>
+      .save-notice {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        z-index: 9999;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: opacity 0.3s ease;
+      }
+      .save-success {
+        background: #28a745;
+      }
+      .save-error {
+        background: #dc3545;
+      }
+    </style>
+  </body>
+</html>

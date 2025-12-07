@@ -20,6 +20,7 @@ from .appr_state import *
 from .contract_terminate import *
 from .sourcing_terminate import *
 from .project_round import *
+from .dropdown_config import *
 
 __all__ = [
     # 基础工具函数
@@ -110,4 +111,14 @@ __all__ = [
     # 项目轮次
     'project_round_view',
     'download_project_round_template',
+
+    # 下拉框配置管理
+    'dropdown_config_view',
+    'dropdown_group_add',
+    'dropdown_group_edit',
+    'dropdown_group_toggle',
+    'dropdown_item_add',
+    'dropdown_item_edit',
+    'dropdown_item_delete',
+    'dropdown_item_toggle',
 ]

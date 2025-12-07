@@ -3,76 +3,429 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>任务详情</title>
+    <title>任务详情 #{{ job.id }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-      .page-header { display:flex; align-items:center; justify-content:space-between; margin-top:16px; }
-      .card-box { max-width: 900px; }
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding: 24px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .page-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .title-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        color: white;
+        font-size: 24px;
+      }
+      .title-text h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: #1f2937;
+      }
+      .title-text p {
+        margin: 0;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-header {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        text-decoration: none;
+      }
+      .btn-back {
+        background: white;
+        border-color: #d1d5db;
+        color: #374151;
+      }
+      .btn-back:hover {
+        background: #f3f4f6;
+      }
+      .btn-delete {
+        background: white;
+        border-color: #fca5a5;
+        color: #dc2626;
+      }
+      .btn-delete:hover:not(:disabled) {
+        background: #fef2f2;
+      }
+      .btn-fail {
+        background: white;
+        border-color: #fcd34d;
+        color: #d97706;
+      }
+      .btn-fail:hover:not(:disabled) {
+        background: #fffbeb;
+      }
+      .btn-header:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .detail-card {
+        background: white;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .status-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        background: #f9fafb;
+        border-radius: 10px;
+        margin-bottom: 24px;
+      }
+      .status-label {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+      .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-success {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .status-failed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status-running {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .status-pending {
+        background: #e5e7eb;
+        color: #374151;
+      }
+      .progress-section {
+        margin-bottom: 28px;
+      }
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .progress-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #374151;
+      }
+      .progress-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #667eea;
+      }
+      .progress {
+        height: 24px;
+        border-radius: 12px;
+        background: #e5e7eb;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+        transition: width 0.3s ease;
+      }
+      .info-grid {
+        display: grid;
+        gap: 20px;
+      }
+      .info-item {
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+      .info-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 6px;
+      }
+      .info-label i {
+        color: #9ca3af;
+      }
+      .info-value {
+        font-size: 15px;
+        color: #1f2937;
+        word-break: break-all;
+      }
+      .info-value.error {
+        color: #dc2626;
+        font-weight: 500;
+      }
+      .info-value.empty {
+        color: #9ca3af;
+        font-style: italic;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      .status-running .bi-arrow-repeat {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
     </style>
   </head>
   <body>
     {% include 'sidebar.html' %}
-    <div class="container">
+    
+    <div class="detail-container">
+      <!-- 页面头部 -->
       <div class="page-header">
-        <h3>任务 #{{ job.id }}（{{ job.job_type }}）</h3>
-        <div>
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'job_list' %}">返回列表</a>
-          <form method="post" action="{% url 'job_delete' job.id %}" style="display:inline-block;">
+        <div class="page-title">
+          <div class="title-icon">
+            <i class="bi bi-card-checklist"></i>
+          </div>
+          <div class="title-text">
+            <h3>任务 #{{ job.id }}</h3>
+            <p>{{ job.job_type }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a class="btn-header btn-back" href="{% url 'job_list' %}">
+            <i class="bi bi-arrow-left"></i>
+            返回列表
+          </a>
+          <form method="post" action="{% url 'job_fail' job.id %}" style="display: inline-block;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger" {% if job.status == 'running' %}disabled{% endif %}>删除</button>
+            <button type="submit" class="btn-header btn-fail" {% if job.status != 'running' %}disabled{% endif %}>
+              <i class="bi bi-exclamation-triangle"></i>
+              标记失败
+            </button>
           </form>
-          <form method="post" action="{% url 'job_fail' job.id %}" style="display:inline-block;">
+          <form method="post" action="{% url 'job_delete' job.id %}" style="display: inline-block;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-warning" {% if job.status != 'running' %}disabled{% endif %}>标记失败</button>
+            <button type="submit" class="btn-header btn-delete" {% if job.status == 'running' %}disabled{% endif %}>
+              <i class="bi bi-trash"></i>
+              删除任务
+            </button>
           </form>
         </div>
       </div>
-      <div class="card card-box">
-        <div class="card-body">
-          <div class="mb-2">
-            状态：
+
+      <!-- 任务详情卡片 -->
+      <div class="detail-card">
+        <!-- 状态区域 -->
+        <div class="status-section">
+          <div>
+            <div class="status-label">任务状态</div>
             {% if job.status == 'success' %}
-            <span class="badge text-bg-success">{{ job.status }}</span>
+            <span class="status-badge status-success">
+              <i class="bi bi-check-circle-fill"></i> 执行成功
+            </span>
             {% elif job.status == 'failed' %}
-            <span class="badge text-bg-danger">{{ job.status }}</span>
+            <span class="status-badge status-failed">
+              <i class="bi bi-x-circle-fill"></i> 执行失败
+            </span>
             {% elif job.status == 'running' %}
-            <span class="badge text-bg-warning">{{ job.status }}</span>
+            <span class="status-badge status-running">
+              <i class="bi bi-arrow-repeat"></i> 运行中
+            </span>
             {% else %}
-            <span class="badge text-bg-secondary">{{ job.status }}</span>
+            <span class="status-badge status-pending">
+              <i class="bi bi-clock"></i> {{ job.status }}
+            </span>
             {% endif %}
           </div>
-          <div class="progress" style="height: 22px;">
-            <div id="bar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+        </div>
+
+        <!-- 进度区域 -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-title">执行进度</span>
+            <span class="progress-value" id="prog">{{ job.done }}/{{ job.total }}</span>
           </div>
-          <div class="mt-2">进度：<span id="prog">{{ job.done }}/{{ job.total }}</span></div>
-          <div class="mt-2">信息：<span id="msg">{{ job.message }}</span></div>
-          <div class="mt-2 text-danger">错误：<span id="err">{{ job.error }}</span></div>
-          <div class="mt-2">文件：<span>{{ job.filename }}</span></div>
-          <div class="mt-2">更新时间：<span id="upd">{{ job.updated_at }}</span></div>
+          <div class="progress">
+            <div id="bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%;">0%</div>
+          </div>
+        </div>
+
+        <!-- 信息网格 -->
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">
+              <i class="bi bi-info-circle"></i>
+              <span>任务信息</span>
+            </div>
+            <div class="info-value" id="msg">
+              {{ job.message|default:"等待执行..." }}
+            </div>
+          </div>
+
+          {% if job.error %}
+          <div class="info-item" style="border-left-color: #ef4444;">
+            <div class="info-label">
+              <i class="bi bi-exclamation-circle"></i>
+              <span>错误信息</span>
+            </div>
+            <div class="info-value error" id="err">{{ job.error }}</div>
+          </div>
+          {% else %}
+          <div class="info-item" style="border-left-color: #10b981; display: none;" id="errorContainer">
+            <div class="info-label">
+              <i class="bi bi-exclamation-circle"></i>
+              <span>错误信息</span>
+            </div>
+            <div class="info-value error" id="err"></div>
+          </div>
+          {% endif %}
+
+          <div class="info-item" style="border-left-color: #8b5cf6;">
+            <div class="info-label">
+              <i class="bi bi-file-earmark"></i>
+              <span>文件名称</span>
+            </div>
+            <div class="info-value">
+              {{ job.filename|default:"未知" }}
+            </div>
+          </div>
+
+          <div class="info-item" style="border-left-color: #f59e0b;">
+            <div class="info-label">
+              <i class="bi bi-clock-history"></i>
+              <span>更新时间</span>
+            </div>
+            <div class="info-value" id="upd">{{ job.updated_at|date:"Y-m-d H:i:s" }}</div>
+          </div>
         </div>
       </div>
     </div>
+
     <script>
       const jobId = {{ job.id }};
+      const statusBadge = document.querySelector('.status-badge');
+      const progText = document.getElementById('prog');
+      const bar = document.getElementById('bar');
+      const msg = document.getElementById('msg');
+      const err = document.getElementById('err');
+      const errorContainer = document.getElementById('errorContainer');
+      const upd = document.getElementById('upd');
+      
       async function poll() {
         try {
           const r = await fetch(`/jobs/${jobId}/status/`);
           const j = await r.json();
-          document.getElementById('msg').innerText = j.message || '';
-          document.getElementById('err').innerText = j.error || '';
+          
+          // 更新信息
+          if (msg) msg.innerText = j.message || '等待执行...';
+          
+          // 更新错误
+          if (j.error && err) {
+            err.innerText = j.error;
+            if (errorContainer) errorContainer.style.display = 'block';
+          }
+          
+          // 更新进度
           const total = j.total || 0;
           const done = j.done || 0;
           const pct = total > 0 ? Math.round((done/total)*100) : (j.status==='success'?100:0);
-          document.getElementById('prog').innerText = `${done}/${total}`;
-          const bar = document.getElementById('bar');
-          bar.style.width = `${pct}%`;
-          bar.innerText = `${pct}%`;
-          const statusBadge = document.querySelector('.badge');
-          if (statusBadge) statusBadge.innerText = j.status;
-        } catch {}
+          
+          if (progText) progText.innerText = `${done}/${total}`;
+          
+          if (bar) {
+            bar.style.width = `${pct}%`;
+            bar.innerText = `${pct}%`;
+            
+            // 根据状态设置颜色
+            bar.className = 'progress-bar';
+            if (j.status === 'success') {
+              bar.classList.add('bg-success');
+            } else if (j.status === 'failed') {
+              bar.classList.add('bg-danger');
+            } else {
+              bar.classList.add('bg-primary');
+            }
+          }
+          
+          // 更新状态徽章
+          if (statusBadge) {
+            const statusMap = {
+              'success': '<i class="bi bi-check-circle-fill"></i> 执行成功',
+              'failed': '<i class="bi bi-x-circle-fill"></i> 执行失败',
+              'running': '<i class="bi bi-arrow-repeat"></i> 运行中',
+            };
+            
+            if (statusMap[j.status]) {
+              statusBadge.innerHTML = statusMap[j.status];
+            }
+            
+            // 更新样式
+            statusBadge.className = 'status-badge';
+            if (j.status === 'success') {
+              statusBadge.classList.add('status-success');
+            } else if (j.status === 'failed') {
+              statusBadge.classList.add('status-failed');
+            } else if (j.status === 'running') {
+              statusBadge.classList.add('status-running');
+            } else {
+              statusBadge.classList.add('status-pending');
+            }
+          }
+        } catch (e) {
+          console.error('轮询失败:', e);
+        }
       }
+      
+      // 立即轮询一次
       poll();
+      
+      // 每秒轮询
       setInterval(poll, 1000);
     </script>
   </body>
-  </html>
+</html>

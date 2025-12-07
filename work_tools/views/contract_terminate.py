@@ -24,14 +24,20 @@ except ImportError:
 logger = logging.getLogger('work_tools.view')
 sql_logger = logging.getLogger('work_tools.sql')
 
-# 状态值映射字典 - 用于Excel解析
-BID_STATUS_MAP = {v: k for k, v in BID_STATUS_CHOICES if k}
-
 
 def parse_terminate_excel(file):
     """解析Excel文件,提取终止合同数据"""
     if not OPENPYXL_AVAILABLE:
         raise ValueError("缺少 openpyxl，无法解析 Excel")
+
+    # 从数据库加载中标状态配置构建映射字典
+    try:
+        from ..dropdown_utils import get_dropdown_options
+        options = get_dropdown_options('bid_status', include_empty=False)
+        BID_STATUS_MAP = {label: code for code, label in options if code}
+    except Exception:
+        # 回退到硬编码映射
+        BID_STATUS_MAP = {v: k for k, v in BID_STATUS_CHOICES if k}
 
     wb = openpyxl.load_workbook(file)
     ws = wb.active
@@ -124,9 +130,12 @@ def generate_terminate_sql_bulk(records, ops_remark=None):
         for chunk in chunk_list(sign_ids, int(cfg.get('MERGE_MAX_IN_SIZE', 500))):
             inlist = format_in(chunk)
             sql.append("--回退中标结果状态")
-            sql.append(f"UPDATE tprnq01 SET status='40' WHERE SIGN_ID IN ({inlist});")
-            sql.append(f"UPDATE tprnq02 SET status='40' WHERE SIGN_ID IN ({inlist});")
-            sql.append(f"UPDATE tprnq03 SET status='40' WHERE SIGN_ID IN ({inlist});")
+            sql.append(
+                f"UPDATE tprnq01 SET status='40' WHERE SIGN_ID IN ({inlist});")
+            sql.append(
+                f"UPDATE tprnq02 SET status='40' WHERE SIGN_ID IN ({inlist});")
+            sql.append(
+                f"UPDATE tprnq03 SET status='40' WHERE SIGN_ID IN ({inlist});")
             sql.append("")
 
     else:
@@ -146,9 +155,12 @@ def generate_terminate_sql_bulk(records, ops_remark=None):
 
             if sign_id:
                 sql.append("--回退中标结果状态")
-                sql.append(f"UPDATE tprnq01 SET status='40' WHERE SIGN_ID='{sign_id}';")
-                sql.append(f"UPDATE tprnq02 SET status='40' WHERE SIGN_ID='{sign_id}';")
-                sql.append(f"UPDATE tprnq03 SET status='40' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq01 SET status='40' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq02 SET status='40' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq03 SET status='40' WHERE SIGN_ID='{sign_id}';")
                 sql.append("")
 
     # 生成回退语句
@@ -167,9 +179,12 @@ def generate_terminate_sql_bulk(records, ops_remark=None):
 
             for chunk in chunk_list(sign_ids, int(cfg.get('MERGE_MAX_IN_SIZE', 500))):
                 inlist = format_in(chunk)
-                sql.append(f"UPDATE tprnq01 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
-                sql.append(f"UPDATE tprnq02 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
-                sql.append(f"UPDATE tprnq03 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
+                sql.append(
+                    f"UPDATE tprnq01 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
+                sql.append(
+                    f"UPDATE tprnq02 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
+                sql.append(
+                    f"UPDATE tprnq03 SET status='{orig_status}' WHERE SIGN_ID IN ({inlist});")
 
         sql.append("")
 
@@ -190,9 +205,12 @@ def generate_terminate_sql_bulk(records, ops_remark=None):
             orig_status = r.get('orig_bid_status', '50')
 
             if sign_id:
-                sql.append(f"UPDATE tprnq01 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
-                sql.append(f"UPDATE tprnq02 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
-                sql.append(f"UPDATE tprnq03 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq01 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq02 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
+                sql.append(
+                    f"UPDATE tprnq03 SET status='{orig_status}' WHERE SIGN_ID='{sign_id}';")
                 sql.append("")
 
             if bpo_id:
