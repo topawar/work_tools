@@ -12,9 +12,15 @@ __pycache__/
 *.so
 *.egg
 *.egg-info/
+
+# PyInstaller打包文件
 dist/
 build/
-*.spec
+work_tools_portable/
+work_tools_portable_onefile/
+work_tools_portable_onedir/
+*.exe
+*.zip
 
 # 虚拟环境
 .venv/
