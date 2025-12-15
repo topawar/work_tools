@@ -1,6 +1,7 @@
 """合同失效日期修改模块"""
 import os
 import io
+import logging
 import openpyxl
 from datetime import datetime
 from django.shortcuts import render
@@ -8,10 +9,68 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import EndDateUpdateForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import save_sql_file, parse_ops_remark
+from ..validation_utils import (
+    validate_required,
+    validate_date_format,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path,
+)
+
+logger = logging.getLogger('work_tools.view')
+
+
+def validate_enddate_records(records):
+    """
+    校验失效日期修改记录
+    """
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2
+        errors = []
+        
+        # 必填项校验
+        error = validate_required(record.get('bpo_id'), '合同编号')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('end_date'), '新失效日期')
+        if error:
+            errors.append(error)
+        else:
+            # 日期格式校验
+            error = validate_date_format(record.get('end_date'), '新失效日期')
+            if error:
+                errors.append(error)
+        
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_enddate_excel(file):
@@ -120,30 +179,63 @@ def generate_enddate_sql_bulk(records, ops_remark=None):
 def enddate_update_view(request):
     """合同失效日期修改视图"""
     saved_file = None
+    validation_failure = None
+    
     if request.method == 'POST':
         form = EndDateUpdateForm(request.POST, request.FILES)
         if form.is_valid():
-            cd = form.cleaned_data
-            ops_remark = parse_ops_remark(cd.get('ops_remark', ''))
+            try:
+                cd = form.cleaned_data
+                ops_remark = parse_ops_remark(cd.get('ops_remark', ''))
 
-            if cd.get('excel_file'):
-                records = parse_enddate_excel(cd['excel_file'])
-                sql_content = generate_enddate_sql_bulk(records, ops_remark)
-            else:
-                records = [{
-                    'bpo_id': cd['bpo_id'],
-                    'end_date': cd['end_date'],
-                    'orig_end_date': cd.get('orig_end_date')
-                }]
-                sql_content = generate_enddate_sql_bulk(records, ops_remark)
+                if cd.get('excel_file'):
+                    records = parse_enddate_excel(cd['excel_file'])
+                    
+                    # 执行数据校验
+                    validation_result = validate_enddate_records(records)
+                    
+                    if not validation_result['valid']:
+                        temp_file = generate_validation_failure_excel(
+                            cd['excel_file'],
+                            validation_result,
+                            'enddate'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                            logger.info(f"校验失败: 总行数={validation_failure['total']}, 失败行数={validation_failure['failed']}")
+                        
+                        return render(request, 'end_date_form.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'enddate',
+                            'sidebar_groups': get_sidebar_groups(),
+                        })
+                    
+                    sql_content = generate_enddate_sql_bulk(records, ops_remark)
+                else:
+                    records = [{
+                        'bpo_id': cd['bpo_id'],
+                        'end_date': cd['end_date'],
+                        'orig_end_date': cd.get('orig_end_date')
+                    }]
+                    sql_content = generate_enddate_sql_bulk(records, ops_remark)
 
-            # 保存SQL到固定目录
-            saved_file = save_sql_file(
-                sql_content, '合同失效日期修改', cd.get('dynamic_id'))
+                # 保存SQL到固定目录
+                saved_file = save_sql_file(
+                    sql_content, '合同失效日期修改', cd.get('dynamic_id'))
 
-            request.session['enddate_last'] = {
-                k: v for k, v in cd.items() if k != 'excel_file'
-            }
+                request.session['enddate_last'] = {
+                    k: v for k, v in cd.items() if k != 'excel_file'
+                }
+            except Exception as e:
+                logger.error(f"[失效日期修改] 处理失败: {e}", exc_info=True)
+                form.add_error(None, f"生成SQL失败: {str(e)}")
     else:
         if request.GET.get('clear'):
             request.session.pop('enddate_last', None)
@@ -155,8 +247,9 @@ def enddate_update_view(request):
     return render(request, 'end_date_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'enddate',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

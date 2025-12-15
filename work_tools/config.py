@@ -8,23 +8,28 @@ logger = logging.getLogger('work_tools.config')
 DEFAULT = {
     'MERGE_MAX_IN_SIZE': 500,
     'MERGE_MODULES': {
+        # 合同模块
         'price': True,
         'item': True,
-        'unit': True,
-        'budget': True,
-        'gov': True,
-        'importance': True,
-        'enddate': True,
-        'erp': True,
-        'price_type': True,
         'use_list': True,
+        'budget': True,
+        'enddate': True,
         'appr_state': True,
         'contract_terminate': True,
         'sourcing_terminate': True,
+        'creator': True,  # 合同创建人修改
+        # 计划-寻源模块
+        'unit': True,
+        'gov': True,
+        'importance': True,
+        'price_type': True,
+        'erp': True,
         'project_round': True,
+        'executor': True,  # 订单执行人修改
+        'plan_date': True,  # 需求计划日期修改
     },
     # SQL文件输出配置
-    'SQL_OUTPUT_BASE_PATH': r'D:\临时文件',
+    'SQL_OUTPUT_BASE_PATH': './temp_files/sql_output',  # 相对路径，运行时解析为绝对路径
     'SQL_OUTPUT_MODE': 'hierarchical',  # 'flat' 或 'hierarchical'
     'SQL_OUTPUT_DATE_FORMAT': '%Y%m/%d',  # 日期子目录格式
     # 临时文件清理配置
@@ -33,8 +38,23 @@ DEFAULT = {
 }
 
 
+def _get_runtime_base_dir():
+    """获取运行时的基础目录，支持打包后的exe和源码运行"""
+    import sys
+    if getattr(sys, 'frozen', False):
+        # 打包后，exe所在目录
+        base_dir = os.path.dirname(sys.executable)
+        logger.debug(f"[路径解析] 打包环境，基础目录: {base_dir}")
+        return base_dir
+    else:
+        # 源码运行，使用Django的BASE_DIR
+        base_dir = getattr(settings, 'BASE_DIR', os.getcwd())
+        logger.debug(f"[路径解析] 源码环境，基础目录: {base_dir}")
+        return base_dir
+
+
 def _path():
-    base = getattr(settings, 'BASE_DIR', os.getcwd())
+    base = _get_runtime_base_dir()
     cfg_dir = os.path.join(base, 'config')
     os.makedirs(cfg_dir, exist_ok=True)
     return os.path.join(cfg_dir, 'app_config.json')
@@ -98,6 +118,30 @@ def get_module_names():
     return list(DEFAULT['MERGE_MODULES'].keys())
 
 
+def _resolve_path(path):
+    """解析路径，支持相对路径和绝对路径
+    
+    Args:
+        path: 路径字符串，可以是相对路径（如 ./temp_files）或绝对路径
+    
+    Returns:
+        解析后的绝对路径
+    """
+    if not path:
+        return path
+    
+    # 如果是绝对路径，直接返回
+    if os.path.isabs(path):
+        logger.debug(f"[路径解析] 绝对路径: {path}")
+        return path
+    
+    # 相对路径，基于运行时基础目录解析
+    base_dir = _get_runtime_base_dir()
+    resolved = os.path.normpath(os.path.join(base_dir, path))
+    logger.debug(f"[路径解析] 相对路径 '{path}' 解析为: {resolved}")
+    return resolved
+
+
 def get_config():
     """获取配置，从文件读取并与DEFAULT合并，确保配置完整性"""
     p = _path()
@@ -112,13 +156,21 @@ def get_config():
             if 'MERGE_MODULES' in merged:
                 merged['MERGE_MODULES'] = {**DEFAULT['MERGE_MODULES'], **merged.get('MERGE_MODULES', {})}
             
+            # 解析SQL输出路径为绝对路径
+            if 'SQL_OUTPUT_BASE_PATH' in merged:
+                merged['SQL_OUTPUT_BASE_PATH'] = _resolve_path(merged['SQL_OUTPUT_BASE_PATH'])
+            
             logger.debug(f"[配置加载] 从文件加载配置: {p}")
             return merged
         except Exception as e:
             logger.error(f"[配置加载] 读取配置文件失败: {e}, 使用默认配置")
-            return DEFAULT.copy()
+            config = DEFAULT.copy()
+            config['SQL_OUTPUT_BASE_PATH'] = _resolve_path(config['SQL_OUTPUT_BASE_PATH'])
+            return config
     logger.debug(f"[配置加载] 配置文件不存在，使用默认配置")
-    return DEFAULT.copy()
+    config = DEFAULT.copy()
+    config['SQL_OUTPUT_BASE_PATH'] = _resolve_path(config['SQL_OUTPUT_BASE_PATH'])
+    return config
 
 
 def set_config(cfg):

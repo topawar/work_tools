@@ -62,7 +62,24 @@ class ItemImportForm(StripWhitespaceMixin, forms.Form):
     batch_size = forms.IntegerField(
         label="批大小",
         required=False,
-        initial=2000,
+        initial=5000,
+        min_value=100,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+
+
+class UserOrgImportForm(StripWhitespaceMixin, forms.Form):
+    """用户组织机构导入表单"""
+    csv_file = forms.FileField(
+        label="CSV 文件（列：login_name, user_name, dept_code, dept_name, company_code, company_name, plate_code, plate_name）",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+
+    batch_size = forms.IntegerField(
+        label="批大小",
+        required=False,
+        initial=5000,
         min_value=100,
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
@@ -271,6 +288,14 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
             attrs={'class': 'form-control', 'step': '0.00000001'})
     )
 
+    tax_rate = forms.DecimalField(
+        label="税率",
+        decimal_places=4,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={'class': 'form-control', 'step': '0.0001', 'placeholder': '如: 0.13'})
+    )
+
     orig_quantity = forms.DecimalField(
         label="原数量（可选）",
         decimal_places=2,
@@ -284,6 +309,13 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
         widget=forms.NumberInput(
             attrs={'class': 'form-control', 'step': '0.00000001'})
     )
+    orig_tax_rate = forms.DecimalField(
+        label="原税率（可选）",
+        decimal_places=4,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={'class': 'form-control', 'step': '0.0001', 'placeholder': '如: 0.13'})
+    )
 
     # 单条合同明细行ID
     single_line_id = forms.CharField(
@@ -294,11 +326,30 @@ class ContractDetailPriceForm(StripWhitespaceMixin, forms.Form):
 
     # Excel批量导入
     excel_file = forms.FileField(
-        label="或上传 Excel（列：明细行ID/单价；可选：数量/原数量/原单价）",
+        label="或上传 Excel（列：明细行ID/单价；可选：数量/税率/原数量/原单价）",
         required=False,
         help_text=".xlsx；至少提供明细行ID与单价；可选原字段用于回退",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        excel = cleaned_data.get('excel_file')
+        single = cleaned_data.get('single_line_id')
+        
+        # 验证必须提供单条记录或上传Excel文件
+        if not excel and not single:
+            raise forms.ValidationError("请至少填写单条合同明细行ID或上传Excel文件。")
+        
+        # 验证不能同时提供单条记录和上传Excel文件
+        if excel and single:
+            raise forms.ValidationError("不能同时填写单条合同明细行ID和上传Excel文件。")
+        
+        # 单条模式下必填项校验：合同明细行ID必填
+        if single and not single.strip():
+            raise forms.ValidationError("合同明细行ID不能为空。")
+        
+        return cleaned_data
 
 
 class ContractItemUpdateForm(StripWhitespaceMixin, forms.Form):
@@ -516,19 +567,6 @@ class GovReportForm(StripWhitespaceMixin, forms.Form):
         required=False,
         widget=forms.RadioSelect
     )
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # 从数据库动态加载报送选项
-        try:
-            from .dropdown_utils import get_dropdown_options
-            report_options = get_dropdown_options('report_choice', include_empty=False)
-            if report_options:
-                self.fields['report_choice'].choices = report_options
-                self.fields['orig_report_choice'].choices = report_options
-        except Exception:
-            # 加载失败时使用硬编码选项作为回退
-            pass
 
     excel_file = forms.FileField(
         label="或上传 Excel（列：采购方案编号/询价单编号/合同编号/是否报送(是/否)）",
@@ -1052,4 +1090,273 @@ class ProjectRoundForm(StripWhitespaceMixin, forms.Form):
         if not cleaned_data.get('ops_remark'):
             raise forms.ValidationError("操作备注为必填项。")
 
+        return cleaned_data
+
+
+class PlanDateUpdateForm(StripWhitespaceMixin, forms.Form):
+    """需求计划明细日期修改表单"""
+    dynamic_id = forms.CharField(
+        label="动态编号（如变更单号）",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    ops_remark = forms.CharField(
+        label="操作备注（支持解析ONES链接）",
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
+    )
+
+    # 单条记录字段
+    plan_line_no = forms.CharField(
+        label="明细行号（单条）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如: ZH25-XQJH-25-00028-000001'})
+    )
+
+    required_date = forms.CharField(
+        label="需用日期（YYYYMMDD）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20250531'})
+    )
+
+    start_date = forms.CharField(
+        label="开始日期（YYYYMMDD）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20250424'})
+    )
+
+    end_date = forms.CharField(
+        label="结束日期（YYYYMMDD）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20251231'})
+    )
+
+    # 原值（用于回退）
+    orig_required_date = forms.CharField(
+        label="原需用日期（用于回退）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20250430'})
+    )
+
+    orig_start_date = forms.CharField(
+        label="原开始日期（用于回退）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20250320'})
+    )
+
+    orig_end_date = forms.CharField(
+        label="原结束日期（用于回退）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 20251130'})
+    )
+
+    # Excel批量导入
+    excel_file = forms.FileField(
+        label="或上传Excel（列：明细行号/需用日期/开始日期/结束日期/原需用日期/原开始日期/原结束日期）",
+        required=False,
+        help_text=".xlsx；明细行号为必填；日期字段为非必填，仅对填写的字段生成SQL；原日期用于生成回退语句",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        excel = cleaned_data.get('excel_file')
+        single = cleaned_data.get('plan_line_no')
+
+        if not excel and not single:
+            raise forms.ValidationError("请至少填写单条记录或上传Excel文件。")
+        if excel and single:
+            raise forms.ValidationError("不能同时填写单条记录和上传Excel文件。")
+
+        # 验证单条记录至少有一个日期
+        if single:
+            if not any([cleaned_data.get('required_date'), cleaned_data.get('start_date'), cleaned_data.get('end_date')]):
+                raise forms.ValidationError("请至少填写一个日期字段。")
+
+        if not cleaned_data.get('ops_remark'):
+            raise forms.ValidationError("操作备注为必填项。")
+
+        return cleaned_data
+
+
+class OrderExecutorUpdateForm(StripWhitespaceMixin, forms.Form):
+    """订单执行人修改表单"""
+    dynamic_id = forms.CharField(
+        label="动态编号（如变更单号）",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    ops_remark = forms.CharField(
+        label="操作备注（支持解析ONES链接）",
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
+    )
+    
+    # 单条修改字段
+    purchase_package_no = forms.CharField(
+        label="采购包编号（PURCHASE_PACKAGE_NO）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 CNCH-CGB-25-00004'})
+    )
+    
+    order_id = forms.CharField(
+        label="订单号（ORDER_ID）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 CABX-25-00027-DD-0001'})
+    )
+    
+    order_executor = forms.CharField(
+        label="订单执行人账号（ORDER_EXECUTOR）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 cnch_zmw01'})
+    )
+    
+    # 原值字段（用于回退）
+    orig_order_executor = forms.CharField(
+        label="原订单执行人账号（用于回退）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 1891855700607'})
+    )
+    
+    # Excel批量导入
+    excel_file = forms.FileField(
+        label="或上传Excel（列：采购包编号/订单号/订单执行人账号/原订单执行人账号）",
+        required=False,
+        help_text=".xlsx；采购包编号和订单号至少有一个；订单执行人账号为必填；原值用于生成回退语句",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        excel = cleaned_data.get('excel_file')
+        purchase_package_no = cleaned_data.get('purchase_package_no')
+        order_id = cleaned_data.get('order_id')
+        
+        if not excel and not (purchase_package_no or order_id):
+            raise forms.ValidationError("请至少填写单条记录或上传Excel文件。")
+        if excel and (purchase_package_no or order_id):
+            raise forms.ValidationError("不能同时填写单条记录和上传Excel文件。")
+        
+        # 验证单条记录
+        if (purchase_package_no or order_id):
+            order_executor = cleaned_data.get('order_executor')
+            orig_order_executor = cleaned_data.get('orig_order_executor')
+            
+            # 订单执行人账号必填
+            if not order_executor:
+                raise forms.ValidationError("订单执行人账号为必填项。")
+            
+            # 验证订单执行人账号是否存在
+            from work_tools.models import UserOrgDetail
+            if not UserOrgDetail.objects.filter(login_name=order_executor).exists():
+                raise forms.ValidationError(f"订单执行人账号 {order_executor} 不存在，请检查后重试。")
+            
+            # 验证原订单执行人账号（如果填写了）
+            if orig_order_executor:
+                if not UserOrgDetail.objects.filter(login_name=orig_order_executor).exists():
+                    raise forms.ValidationError(f"原订单执行人账号 {orig_order_executor} 不存在，请检查后重试。")
+        
+        if not cleaned_data.get('ops_remark'):
+            raise forms.ValidationError("操作备注为必填项。")
+        
+        return cleaned_data
+
+
+class ContractCreatorUpdateForm(StripWhitespaceMixin, forms.Form):
+    """合同创建人修改表单"""
+    dynamic_id = forms.CharField(
+        label="动态编号（如变更单号）",
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    
+    ops_remark = forms.CharField(
+        label="操作备注（支持解析ONES链接）",
+        required=True,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '输入任务描述或ONES链接'})
+    )
+    
+    # 单条修改字段
+    bpo_id = forms.CharField(
+        label="合同号（BPO_ID）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如: CNEC03023002000-CLHT-25-0001-B001'})
+    )
+    
+    creator_account = forms.CharField(
+        label="创建人账号（BPO_EDIT_PERSON）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如: cni23480626'})
+    )
+    
+    orig_creator_account = forms.CharField(
+        label="原创建人账号（用于回退，可选）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '留空表示补充创建人'})
+    )
+    
+    orig_creator_name = forms.CharField(
+        label="原创建人姓名（自动补充）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'readonly': 'readonly', 'placeholder': '根据账号自动查询补充'})
+    )
+    
+    # Excel批量导入
+    excel_file = forms.FileField(
+        label="或上传Excel（列：合同号/创建人账号/原创建人账号/原创建人姓名）",
+        required=False,
+        help_text=".xlsx；合同号和创建人账号为必填；原创建人账号和姓名用于生成回退语句",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        excel = cleaned_data.get('excel_file')
+        bpo_id = cleaned_data.get('bpo_id')
+        
+        if not excel and not bpo_id:
+            raise forms.ValidationError("请至少填写单条记录或上传Excel文件。")
+        if excel and bpo_id:
+            raise forms.ValidationError("不能同时填写单条记录和上传Excel文件。")
+        
+        # 验证单条记录
+        if bpo_id:
+            creator_account = cleaned_data.get('creator_account')
+            
+            # 创建人账号必填
+            if not creator_account:
+                raise forms.ValidationError("创建人账号为必填项。")
+            
+            # 验证创建人账号是否存在
+            from work_tools.models import UserOrgDetail
+            if not UserOrgDetail.objects.filter(login_name=creator_account).exists():
+                raise forms.ValidationError(f"创建人账号 {creator_account} 不存在，请检查后重试。")
+            
+            # 原创建人账号不强制验证，如果填写了但无效，允许通过
+        
+        if not cleaned_data.get('ops_remark'):
+            raise forms.ValidationError("操作备注为必填项。")
+        
         return cleaned_data

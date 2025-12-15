@@ -9,11 +9,17 @@ from datetime import datetime
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import UnitChangeForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key, compose_or
 from ..logger_utils import log_view_input
 from .base import parse_ops_remark, extract_company_code, extract_company_name, _unique_code_by_name, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    validate_at_least_one,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
 
 try:
     import openpyxl
@@ -22,6 +28,57 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 logger = logging.getLogger('work_tools.view')
+
+
+def validate_unit_change_records(records):
+    """校验合同起草签约单位修改记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 至少有一项必填:新起草单位名称、新签约主体名称
+        error = validate_at_least_one(
+            [record.get('new_drafting_name'), record.get('new_party_name')],
+            ['新起草单位名称', '新签约主体名称']
+        )
+        if error:
+            errors.append(error)
+        
+        # 至少有一项必填:采购方案编号、询价单编号、定标结果编号
+        error = validate_at_least_one(
+            [record.get('scheme'), record.get('inquiry'), record.get('result')],
+            ['采购方案编号', '询价单编号', '定标结果编号']
+        )
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def generate_unit_sql(records, **kwargs):
@@ -308,6 +365,7 @@ def parse_unit_excel(file):
 def unit_change_view(request):
     """合同单位修改视图"""
     saved_file = None
+    validation_failure = None  # 新增
 
     if request.method == 'POST':
         form = UnitChangeForm(request.POST, request.FILES)
@@ -317,6 +375,33 @@ def unit_change_view(request):
 
             if cd.get('excel_file'):
                 records = parse_unit_excel(cd['excel_file'])
+                
+                # 执行数据校验
+                validation_result = validate_unit_change_records(records)
+                
+                if not validation_result['valid']:
+                    # 校验失败,生成失败文件
+                    temp_file = generate_validation_failure_excel(
+                        cd['excel_file'],
+                        validation_result,
+                        'contract_unit'
+                    )
+                    
+                    if temp_file:
+                        validation_failure = {
+                            'total': validation_result['total'],
+                            'passed': validation_result['passed'],
+                            'failed': validation_result['failed'],
+                            'filename': get_temp_filename_from_path(temp_file)
+                        }
+                    
+                    return render(request, 'unit_change_form.html', {
+                        'form': form,
+                        'validation_failure': validation_failure,
+                        'active_menu': 'unit_change',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
                 # 从记录中判断是否更新
                 will_update_drafting = any(r.get('new_drafting_id') or r.get(
                     'new_drafting_name') for r in records)
@@ -414,8 +499,9 @@ def unit_change_view(request):
     return render(request, 'unit_change_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,  # 新增
         'active_menu': 'unit_change',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

@@ -11,7 +11,7 @@ from django.db import close_old_connections
 
 from ..models import ItemDetail, ImportJob
 from ..forms import ItemImportForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from .base import normalize_item_id
 
 # 导入锁
@@ -26,7 +26,7 @@ def item_import_view(request):
         form = ItemImportForm(request.POST, request.FILES)
         if form.is_valid():
             f = form.cleaned_data['csv_file']
-            batch_size = form.cleaned_data.get('batch_size') or 2000
+            batch_size = form.cleaned_data.get('batch_size') or 5000
             temp_dir = os.path.join(settings.BASE_DIR, 'temp_uploads')
             os.makedirs(temp_dir, exist_ok=True)
             tmp = tempfile.NamedTemporaryFile(
@@ -56,26 +56,34 @@ def item_import_view(request):
                             text = rf.read().decode('utf-8-sig')
                         import csv
                         reader = csv.DictReader(io.StringIO(text))
+                        # 将列名转换为小写以忽略大小写
+                        fieldnames_lower = {h.strip().lower(): h.strip() for h in reader.fieldnames or []}
                         required = {'item_id', 'item_name',
                                     'category', 'item_uom', 'purc_type'}
-                        if not required.issubset(set([h.strip() for h in reader.fieldnames or []])):
+                        if not required.issubset(set(fieldnames_lower.keys())):
                             raise ValueError(
-                                'CSV列需包含：item_id, item_name, category, item_uom, purc_type')
+                                'CSV列需包含（忽略大小写）：item_id, item_name, category, item_uom, purc_type')
                         buffer = []
                         created = 0
                         updated = 0
                         done = 0
                         ItemDetail.objects.all().delete()
                         for row in reader:
-                            rid = (row.get('item_id') or '').strip()
+                            # 使用忽略大小写的方式获取列值
+                            def get_value(row, key):
+                                """忽略大小写获取列值"""
+                                original_key = fieldnames_lower.get(key.lower())
+                                return (row.get(original_key) or '').strip() if original_key else ''
+                            
+                            rid = get_value(row, 'item_id')
                             if not rid:
                                 continue
                             buffer.append({
                                 'item_id': rid,
-                                'item_name': (row.get('item_name') or '').strip(),
-                                'category': (row.get('category') or '').strip(),
-                                'item_uom': (row.get('item_uom') or '').strip(),
-                                'purc_type': (row.get('purc_type') or '').strip(),
+                                'item_name': get_value(row, 'item_name'),
+                                'category': get_value(row, 'category'),
+                                'item_uom': get_value(row, 'item_uom'),
+                                'purc_type': get_value(row, 'purc_type'),
                             })
                             if len(buffer) >= batch_size:
                                 ids = [b['item_id'] for b in buffer]
@@ -124,14 +132,14 @@ def item_import_view(request):
         return render(request, 'item_import.html', {
             'form': form,
             'active_menu': 'item_import',
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
         })
     else:
         form = ItemImportForm()
         return render(request, 'item_import.html', {
             'form': form,
             'active_menu': 'item_import',
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
         })
 
 

@@ -9,12 +9,57 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import FloatingPriceTypeForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import save_sql_file, parse_ops_remark
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
 
 logger = logging.getLogger('work_tools.view')
+
+
+def validate_price_type_records(records):
+    """校验浮动单价类型修改记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 必填项校验:合同编号必填
+        error = validate_required(record.get('bpo_id'), '合同编号')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_price_type_excel(file):
@@ -113,6 +158,7 @@ def generate_price_type_sql(records, ops_remark=''):
 def floating_price_type_view(request):
     """浮动单价类型修改视图"""
     saved_file = None
+    validation_failure = None  # 新增
     if request.method == 'POST':
         form = FloatingPriceTypeForm(request.POST, request.FILES)
         if form.is_valid():
@@ -121,6 +167,33 @@ def floating_price_type_view(request):
 
             if cd.get('excel_file'):
                 records = parse_price_type_excel(cd['excel_file'])
+                
+                # 执行数据校验
+                validation_result = validate_price_type_records(records)
+                
+                if not validation_result['valid']:
+                    # 校验失败,生成失败文件
+                    temp_file = generate_validation_failure_excel(
+                        cd['excel_file'],
+                        validation_result,
+                        'price_type'
+                    )
+                    
+                    if temp_file:
+                        validation_failure = {
+                            'total': validation_result['total'],
+                            'passed': validation_result['passed'],
+                            'failed': validation_result['failed'],
+                            'filename': get_temp_filename_from_path(temp_file)
+                        }
+                    
+                    return render(request, 'floating_price_type_form.html', {
+                        'form': form,
+                        'validation_failure': validation_failure,
+                        'active_menu': 'price_type_update',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
                 valid = [r for r in records if r.get('bpo_id')]
                 sql_content = generate_price_type_sql(valid, ops_remark)
             else:
@@ -151,8 +224,9 @@ def floating_price_type_view(request):
     return render(request, 'floating_price_type_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,  # 新增
         'active_menu': 'price_type_update',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

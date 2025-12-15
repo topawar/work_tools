@@ -8,7 +8,7 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import ImportanceForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import save_sql_file, parse_ops_remark
@@ -287,7 +287,7 @@ def importance_update_view(request):
                         'form': form,
                         'validation_failure': validation_failure,
                         'active_menu': 'importance',
-                        'sidebar_groups': SIDEBAR_GROUPS,
+                        'sidebar_groups': get_sidebar_groups(),
                     })
                 
                 sql_content = generate_importance_sql_bulk(records, ops_remark)
@@ -323,7 +323,7 @@ def importance_update_view(request):
         'saved_file': saved_file,
         'validation_failure': validation_failure,
         'active_menu': 'importance',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

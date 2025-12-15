@@ -53,6 +53,7 @@ urlpatterns = [
     path('download/<str:filename>/', view.download_sql, name='download_sql'),
     path('org/import/', view.org_import_view, name='org_import'),
     path('org/search/', view.org_search_api, name='org_search'),
+    path('user-org/import/', view.user_org_import_view, name='user_org_import'),
     path('item/search/', view.item_search_api, name='item_search'),
     path('item/by-id/', view.item_detail_api, name='item_by_id'),
     path('item/import/', view.item_import_view, name='item_import'),
@@ -86,6 +87,25 @@ urlpatterns = [
     path('project/round/template/', view.download_project_round_template,
          name='download_project_round_template'),
     
+    path('plan/date/', view.plan_date_update_view,
+         name='plan_date_update'),
+    path('plan/date/template/', view.download_plan_date_template,
+         name='download_plan_date_template'),
+    
+    path('order/executor/', view.order_executor_update_view,
+         name='order_executor_update'),
+    path('order/executor/template/', view.download_order_executor_template,
+         name='download_order_executor_template'),
+    path('order/executor/validate/', view.validate_order_executor_api,
+         name='validate_order_executor'),
+    
+    path('contract/creator/', view.contract_creator_update_view,
+         name='contract_creator_update'),
+    path('contract/creator/template/', view.download_contract_creator_template,
+         name='download_contract_creator_template'),
+    path('contract/creator/validate/', view.validate_contract_creator_api,
+         name='validate_contract_creator'),
+    
     # 校验失败文件下载
     path('download_validation_failure/', view.download_validation_failure_view,
          name='download_validation_failure'),
@@ -99,4 +119,25 @@ urlpatterns = [
     path('dropdown-config/item/edit/', view.dropdown_item_edit, name='dropdown_item_edit'),
     path('dropdown-config/item/delete/', view.dropdown_item_delete, name='dropdown_item_delete'),
     path('dropdown-config/item/toggle/', view.dropdown_item_toggle, name='dropdown_item_toggle'),
+    
+    # 可配置表管理
+    path('configurable-config/', view.configurable_config_view, name='configurable_config'),
+    path('configurable-config/table/add/', view.configurable_table_add, name='configurable_table_add'),
+    path('configurable-config/table/edit/', view.configurable_table_edit, name='configurable_table_edit'),
+    path('configurable-config/table/toggle/', view.configurable_table_toggle, name='configurable_table_toggle'),
+    path('configurable-config/field/add/', view.configurable_field_add, name='configurable_field_add'),
+    path('configurable-config/field/edit/', view.configurable_field_edit, name='configurable_field_edit'),
+    path('configurable-config/field/delete/', view.configurable_field_delete, name='configurable_field_delete'),
+    path('configurable-config/field/toggle/', view.configurable_field_toggle, name='configurable_field_toggle'),
+    
+    # 数据库配置管理
+    path('database-config/', view.database_config_view, name='database_config'),
+    path('database-config/add/', view.database_config_add, name='database_config_add'),
+    path('database-config/edit/', view.database_config_edit, name='database_config_edit'),
+    path('database-config/toggle/', view.database_config_toggle, name='database_config_toggle'),
+    path('database-config/delete/', view.database_config_delete, name='database_config_delete'),
+    
+    # 可配置数据修改页面（动态路由）
+    path('configurable/<str:table_code>/', view.configurable_data_view, name='configurable_data'),
+    path('configurable/<str:table_code>/template/', view.download_template, name='configurable_template_download'),
 ]

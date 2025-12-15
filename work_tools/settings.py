@@ -127,9 +127,18 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # 简化的日志配置 - 直接写入文件,避免复杂配置导致的问题
+import sys
+
+# 获取运行时基础目录（支持打包后的exe和源码运行）
+def get_runtime_base():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return BASE_DIR
+
+RUNTIME_BASE_DIR = get_runtime_base()
 
 # 创建日志目录
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
+LOG_DIR = os.path.join(RUNTIME_BASE_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # 完全禁用Django默认日志配置,使用自定义简单配置

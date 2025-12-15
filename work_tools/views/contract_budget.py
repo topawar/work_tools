@@ -9,12 +9,65 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import ContractBudgetUpdateForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import save_sql_file, parse_ops_remark
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path,
+)
 
 logger = logging.getLogger('work_tools.view')
+
+
+def validate_budget_records(records):
+    """
+    校验预算修改记录
+    
+    Args:
+        records: 记录列表
+        
+    Returns:
+        校验结果字典
+    """
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 必填项校验：询价单标段编号必填
+        error = validate_required(record.get('section_no'), '询价单标段编号')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_budget_excel(file):
@@ -232,39 +285,73 @@ def generate_budget_sql_bulk(records, ops_remark=None):
 def contract_budget_update_view(request):
     """合同预算修改视图"""
     saved_file = None
+    validation_failure = None
+    
     if request.method == 'POST':
         form = ContractBudgetUpdateForm(request.POST, request.FILES)
         if form.is_valid():
-            cd = form.cleaned_data
-            ops_remark = parse_ops_remark(cd.get('ops_remark', ''))
+            try:
+                cd = form.cleaned_data
+                ops_remark = parse_ops_remark(cd.get('ops_remark', ''))
 
-            if cd.get('excel_file'):
-                records = parse_budget_excel(cd['excel_file'])
-            else:
-                rec = {
-                    'contract_bpo_id': cd.get('contract_bpo_id'),
-                    'section_no': cd.get('section_no'),
-                    'supplier_id': cd.get('supplier_id'),
-                    'new_budget': cd.get('new_budget'),
-                    'orig_budget': cd.get('orig_budget'),
-                }
-                records = [rec]
+                if cd.get('excel_file'):
+                    records = parse_budget_excel(cd['excel_file'])
+                    
+                    # 执行数据校验
+                    validation_result = validate_budget_records(records)
+                    
+                    if not validation_result['valid']:
+                        # 校验失败，生成失败文件
+                        temp_file = generate_validation_failure_excel(
+                            cd['excel_file'],
+                            validation_result,
+                            'contract_budget'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                            logger.info(f"校验失败: 总行数={validation_failure['total']}, "
+                                      f"失败行数={validation_failure['failed']}")
+                        
+                        return render(request, 'contract_budget_form.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'contract_budget',
+                            'sidebar_groups': get_sidebar_groups(),
+                        })
+                else:
+                    rec = {
+                        'contract_bpo_id': cd.get('contract_bpo_id'),
+                        'section_no': cd.get('section_no'),
+                        'supplier_id': cd.get('supplier_id'),
+                        'new_budget': cd.get('new_budget'),
+                        'orig_budget': cd.get('orig_budget'),
+                    }
+                    records = [rec]
 
-            sql_content = generate_budget_sql_bulk(records, ops_remark)
+                sql_content = generate_budget_sql_bulk(records, ops_remark)
 
-            # 保存SQL到固定目录
-            saved_file = save_sql_file(
-                sql_content, '修改合同预算', cd.get('dynamic_id'))
+                # 保存SQL到固定目录
+                saved_file = save_sql_file(
+                    sql_content, '修改合同预算', cd.get('dynamic_id'))
 
-            # 保存会话数据
-            session_data = {}
-            for k, v in cd.items():
-                if k != 'excel_file':
-                    if hasattr(v, 'to_eng_string'):
-                        session_data[k] = v.to_eng_string()
-                    else:
-                        session_data[k] = v
-            request.session['contract_budget_last'] = session_data
+                # 保存会话数据
+                session_data = {}
+                for k, v in cd.items():
+                    if k != 'excel_file':
+                        if hasattr(v, 'to_eng_string'):
+                            session_data[k] = v.to_eng_string()
+                        else:
+                            session_data[k] = v
+                request.session['contract_budget_last'] = session_data
+            except Exception as e:
+                logger.error(f"[合同预算修改] 处理失败: {e}", exc_info=True)
+                form.add_error(None, f"生成SQL失败: {str(e)}")
     else:
         if request.GET.get('clear'):
             request.session.pop('contract_budget_last', None)
@@ -276,8 +363,9 @@ def contract_budget_update_view(request):
     return render(request, 'contract_budget_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'contract_budget',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

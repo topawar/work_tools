@@ -1,6 +1,7 @@
 """政采云报告模块"""
 import os
 import io
+import logging
 import openpyxl
 from datetime import datetime
 from django.shortcuts import render
@@ -8,10 +9,65 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import GovReportForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from .base import save_sql_file, parse_ops_remark
+from ..validation_utils import (
+    validate_required,
+    validate_at_least_one,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
+
+logger = logging.getLogger('work_tools.view')
+
+
+def validate_gov_report_records(records):
+    """校验政采云报送记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 至少有一项必填:采购方案编号,询价单编号,合同编号
+        error = validate_at_least_one(
+            [record.get('scheme_no'), record.get('inq_id'), record.get('bpo_id')],
+            ['采购方案编号', '询价单编号', '合同编号']
+        )
+        if error:
+            errors.append(error)
+        
+        # 必填项校验:是否报送必选
+        if record.get('report_bool') is None:
+            errors.append("是否报送必选")
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_gov_excel(file):
@@ -19,7 +75,10 @@ def parse_gov_excel(file):
     wb = openpyxl.load_workbook(file)
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
-    idx = {str(h): i for i, h in enumerate(headers)}
+    idx = {str(h).strip() if h else '': i for i, h in enumerate(headers)}
+    
+    logger.info(f"[政采云报送] Excel表头: {headers}")
+    logger.info(f"[政采云报送] 列索引映射: {idx}")
 
     def pick(alts):
         for a in alts:
@@ -32,6 +91,8 @@ def parse_gov_excel(file):
     b_idx = pick(['bpo_id', 'BPO_ID', '合同号'])
     r_idx = pick(['report', '是否报送'])
     or_idx = pick(['orig_report', '原是否报送'])
+    
+    logger.info(f"[政采云报送] 列索引: s_idx={s_idx}, i_idx={i_idx}, b_idx={b_idx}, r_idx={r_idx}, or_idx={or_idx}")
 
     records = []
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -55,6 +116,10 @@ def parse_gov_excel(file):
         if rec.get('scheme_no') or rec.get('inq_id') or rec.get('bpo_id'):
             records.append(rec)
 
+    logger.info(f"[政采云报送] 解析到 {len(records)} 条记录")
+    if records:
+        logger.info(f"[政采云报送] 第一条记录示例: {records[0]}")
+    
     if not records:
         raise ValueError("Excel 中没有有效的行数据")
     return records
@@ -178,6 +243,7 @@ def generate_gov_sql_bulk(records, ops_remark=None, report_choice=None, orig_rep
 def gov_report_view(request):
     """政采云报送修改视图"""
     saved_file = None
+    validation_failure = None  # 新增
     if request.method == 'POST':
         form = GovReportForm(request.POST, request.FILES)
         if form.is_valid():
@@ -186,6 +252,33 @@ def gov_report_view(request):
 
             if cd.get('excel_file'):
                 records = parse_gov_excel(cd['excel_file'])
+                
+                # 执行数据校验
+                validation_result = validate_gov_report_records(records)
+                
+                if not validation_result['valid']:
+                    # 校验失败,生成失败文件
+                    temp_file = generate_validation_failure_excel(
+                        cd['excel_file'],
+                        validation_result,
+                        'gov_report'
+                    )
+                    
+                    if temp_file:
+                        validation_failure = {
+                            'total': validation_result['total'],
+                            'passed': validation_result['passed'],
+                            'failed': validation_result['failed'],
+                            'filename': get_temp_filename_from_path(temp_file)
+                        }
+                    
+                    return render(request, 'gov_report_form.html', {
+                        'form': form,
+                        'validation_failure': validation_failure,
+                        'active_menu': 'gov_report',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
                 sql_content = generate_gov_sql_bulk(records, ops_remark)
             else:
                 rec = {
@@ -217,8 +310,9 @@ def gov_report_view(request):
     return render(request, 'gov_report_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,  # 新增
         'active_menu': 'gov_report',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

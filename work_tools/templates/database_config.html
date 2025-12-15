@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据库配置管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .container-fluid {
+        max-width: 1200px;
+      }
+      .config-panel {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+      }
+      .panel-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+      .badge-active {
+        background: #28a745;
+      }
+      .badge-inactive {
+        background: #dc3545;
+      }
+      .save-notice {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        z-index: 9999;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: opacity 0.3s ease;
+      }
+      .save-success {
+        background: #28a745;
+      }
+      .save-error {
+        background: #dc3545;
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+
+    <div class="container-fluid">
+      <h2 style="margin-bottom: 10px">数据库配置管理</h2>
+      <p style="color: #6c757d; font-size: 14px">配置SQL文件中的数据库信息</p>
+
+      {% if message %}
+      <div id="saveSuccess" class="save-notice save-success">{{ message }}</div>
+      {% endif %} {% if error %}
+      <div id="saveError" class="save-notice save-error">{{ error }}</div>
+      {% endif %}
+
+      <div class="config-panel">
+        <div class="panel-header">
+          <div class="panel-title">数据库配置列表</div>
+          <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addConfigModal">+ 添加配置</button>
+        </div>
+
+        <table class="table table-hover table-striped">
+          <thead>
+            <tr>
+              <th style="width: 15%">配置编码</th>
+              <th style="width: 15%">配置名称</th>
+              <th style="width: 25%">数据库地址</th>
+              <th style="width: 15%">库名</th>
+              <th style="width: 8%">排序</th>
+              <th style="width: 10%">状态</th>
+              <th style="width: 12%">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if db_configs %} {% for config in db_configs %}
+            <tr>
+              <td><code>{{ config.config_code }}</code></td>
+              <td>{{ config.config_name }}</td>
+              <td>{{ config.db_host }}</td>
+              <td>{{ config.db_name }}</td>
+              <td>{{ config.sort_order }}</td>
+              <td><span class="badge badge-{% if config.is_active %}active{% else %}inactive{% endif %}">{% if config.is_active %}启用{% else %}禁用{% endif %}</span></td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editConfig({{ config.id }}, '{{ config.config_code }}', '{{ config.config_name }}', '{{ config.db_host }}', '{{ config.db_name }}', {{ config.sort_order }})">编辑</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ config.id }})">删除</button>
+                <form method="post" action="/database-config/toggle/" style="display: inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="config_id" value="{{ config.id }}" />
+                  <button type="submit" class="btn btn-sm btn-outline-{% if config.is_active %}warning{% else %}success{% endif %}">{% if config.is_active %}禁用{% else %}启用{% endif %}</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %} {% else %}
+            <tr>
+              <td colspan="7" class="text-center" style="padding: 40px">暂无数据库配置</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 添加配置模态框 -->
+    <div class="modal fade" id="addConfigModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" action="/database-config/add/">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">添加数据库配置</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <label for="config_code">配置编码 *</label>
+              <input type="text" class="form-control" id="config_code" name="config_code" required pattern="[a-zA-Z0-9_]+" placeholder="例如: ph" />
+              <small class="text-muted">仅允许字母、数字、下划线</small>
+
+              <label for="config_name" style="margin-top: 10px">配置名称 *</label>
+              <input type="text" class="form-control" id="config_name" name="config_name" required placeholder="例如: 品海数据库" />
+
+              <label for="db_host" style="margin-top: 10px">数据库地址 *</label>
+              <input type="text" class="form-control" id="db_host" name="db_host" required placeholder="例如: 192.168.11.71" />
+
+              <label for="db_name" style="margin-top: 10px">库名 *</label>
+              <input type="text" class="form-control" id="db_name" name="db_name" required placeholder="例如: cnnc_ph" />
+
+              <label for="sort_order" style="margin-top: 10px">排序顺序</label>
+              <input type="number" class="form-control" id="sort_order" name="sort_order" value="0" />
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="submit" class="btn btn-primary">添加</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑配置模态框 -->
+    <div class="modal fade" id="editConfigModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" action="/database-config/edit/">
+            {% csrf_token %}
+            <input type="hidden" name="config_id" id="edit_config_id" />
+            <div class="modal-header">
+              <h5 class="modal-title">编辑数据库配置</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <label>配置编码</label>
+              <input type="text" class="form-control" id="edit_config_code_display" disabled />
+              <small class="text-muted">配置编码不可修改</small>
+
+              <label for="edit_config_name" style="margin-top: 10px">配置名称 *</label>
+              <input type="text" class="form-control" id="edit_config_name" name="config_name" required />
+
+              <label for="edit_db_host" style="margin-top: 10px">数据库地址 *</label>
+              <input type="text" class="form-control" id="edit_db_host" name="db_host" required />
+
+              <label for="edit_db_name" style="margin-top: 10px">库名 *</label>
+              <input type="text" class="form-control" id="edit_db_name" name="db_name" required />
+
+              <label for="edit_sort_order" style="margin-top: 10px">排序顺序</label>
+              <input type="number" class="form-control" id="edit_sort_order" name="sort_order" />
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      function editConfig(id, code, name, host, dbName, sortOrder) {
+        document.getElementById('edit_config_id').value = id;
+        document.getElementById('edit_config_code_display').value = code;
+        document.getElementById('edit_config_name').value = name;
+        document.getElementById('edit_db_host').value = host;
+        document.getElementById('edit_db_name').value = dbName;
+        document.getElementById('edit_sort_order').value = sortOrder;
+
+        var modal = new bootstrap.Modal(document.getElementById('editConfigModal'));
+        modal.show();
+      }
+
+      function deleteConfig(id) {
+        if (confirm('确定要删除这个数据库配置吗？')) {
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/database-config/delete/';
+
+          var csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'csrfmiddlewaretoken';
+          csrfInput.value = '{{ csrf_token }}';
+
+          var configInput = document.createElement('input');
+          configInput.type = 'hidden';
+          configInput.name = 'config_id';
+          configInput.value = id;
+
+          form.appendChild(csrfInput);
+          form.appendChild(configInput);
+          document.body.appendChild(form);
+          form.submit();
+        }
+      }
+
+      (function () {
+        var success = document.getElementById('saveSuccess');
+        var err = document.getElementById('saveError');
+
+        function fadeOut(el) {
+          if (el) {
+            setTimeout(function () {
+              el.style.opacity = '0';
+              setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, 2500);
+          }
+        }
+
+        fadeOut(success);
+        fadeOut(err);
+      })();
+    </script>
+  </body>
+</html>

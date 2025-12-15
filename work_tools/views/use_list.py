@@ -7,11 +7,16 @@ import logging
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import UseListUpdateForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from ..models import OrgDetail
 from .base import parse_ops_remark, extract_company_code, extract_company_name, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path,
+)
 
 try:
     import openpyxl
@@ -20,6 +25,55 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 logger = logging.getLogger('work_tools.view')
+
+
+def validate_uselist_records(records):
+    """
+    校验适用清单修改记录
+    """
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2
+        errors = []
+        
+        # 必填项校验
+        error = validate_required(record.get('business_id'), '合同ID')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('new_org_name'), '新组织机构名称')
+        if error:
+            errors.append(error)
+        
+        # 数据有效性校验：如果查询不到对应编码，记录错误
+        if record.get('new_org_name') and not record.get('new_org_code'):
+            errors.append('新组织机构名称查询失败，请检查名称是否正确')
+        
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def _unique_code_by_name(name: str):
@@ -228,50 +282,82 @@ def download_use_list_template(request):
 def use_list_update_view(request):
     """适用清单修改视图"""
     saved_file = None
+    validation_failure = None
 
     if request.method == 'POST':
         form = UseListUpdateForm(request.POST, request.FILES)
         if form.is_valid():
-            cd = form.cleaned_data
-            ops_remark = cd.get('ops_remark', '')
+            try:
+                cd = form.cleaned_data
+                ops_remark = cd.get('ops_remark', '')
 
-            if cd.get('excel_file'):
-                # Excel批量导入
-                records = parse_use_list_excel(cd['excel_file'])
-            else:
-                # 单条记录
-                new_name = cd.get('new_org_name', '')
-                new_code = extract_company_code(new_name)
-                if not new_code:
-                    new_code = _unique_code_by_name(
-                        extract_company_name(new_name) or new_name)
+                if cd.get('excel_file'):
+                    # Excel批量导入
+                    records = parse_use_list_excel(cd['excel_file'])
+                    
+                    # 执行数据校验
+                    validation_result = validate_uselist_records(records)
+                    
+                    if not validation_result['valid']:
+                        temp_file = generate_validation_failure_excel(
+                            cd['excel_file'],
+                            validation_result,
+                            'use_list'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                            logger.info(f"校验失败: 总行数={validation_failure['total']}, 失败行数={validation_failure['failed']}")
+                        
+                        return render(request, 'use_list_update_form.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'use_list_update',
+                            'sidebar_groups': get_sidebar_groups(),
+                        })
+                else:
+                    # 单条记录
+                    new_name = cd.get('new_org_name', '')
+                    new_code = extract_company_code(new_name)
+                    if not new_code:
+                        new_code = _unique_code_by_name(
+                            extract_company_name(new_name) or new_name)
 
-                orig_name = cd.get('orig_org_name', '')
-                orig_code = extract_company_code(orig_name)
-                if not orig_code:
-                    orig_code = _unique_code_by_name(
-                        extract_company_name(orig_name) or orig_name)
+                    orig_name = cd.get('orig_org_name', '')
+                    orig_code = extract_company_code(orig_name)
+                    if not orig_code:
+                        orig_code = _unique_code_by_name(
+                            extract_company_name(orig_name) or orig_name)
 
-                records = [{
-                    'business_id': cd['business_id'],
-                    'new_org_name': extract_company_name(new_name) or new_name,
-                    'new_org_code': new_code,
-                    'orig_org_name': extract_company_name(orig_name) or orig_name,
-                    'orig_org_code': orig_code,
-                }]
+                    records = [{
+                        'business_id': cd['business_id'],
+                        'new_org_name': extract_company_name(new_name) or new_name,
+                        'new_org_code': new_code,
+                        'orig_org_name': extract_company_name(orig_name) or orig_name,
+                        'orig_org_code': orig_code,
+                    }]
 
-            sql_content = generate_use_list_sql(records, ops_remark)
-            # 保存SQL到固定目录
-            saved_file = save_sql_file(
-                sql_content, '适用清单修改', cd.get('dynamic_id'))
+                sql_content = generate_use_list_sql(records, ops_remark)
+                # 保存SQL到固定目录
+                saved_file = save_sql_file(
+                    sql_content, '适用清单修改', cd.get('dynamic_id'))
+            except Exception as e:
+                logger.error(f"[适用清单修改] 处理失败: {e}", exc_info=True)
+                form.add_error(None, f"生成SQL失败: {str(e)}")
     else:
         form = UseListUpdateForm()
 
     return render(request, 'use_list_update_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'use_list_update',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

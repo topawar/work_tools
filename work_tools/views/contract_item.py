@@ -6,7 +6,7 @@ import logging
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import ContractItemUpdateForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..models import ItemDetail
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
@@ -299,7 +299,7 @@ def contract_item_update_view(request):
                         'form': form,
                         'validation_failure': validation_failure,
                         'active_menu': 'contract_item',
-                        'sidebar_groups': SIDEBAR_GROUPS,
+                        'sidebar_groups': get_sidebar_groups(),
                     })
             else:
                 rec = {
@@ -357,7 +357,7 @@ def contract_item_update_view(request):
         'saved_file': saved_file,
         'validation_failure': validation_failure,
         'active_menu': 'contract_item',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

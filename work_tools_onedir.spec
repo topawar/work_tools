@@ -23,11 +23,12 @@ datas += tmp_ret[0]
 binaries += tmp_ret[1]
 hiddenimports += tmp_ret[2]
 
-# 添加应用模板和静态文件
+# 添加应用模板、静态文件和数据库
 datas += [
     ('work_tools/templates', 'work_tools/templates'),
-    ('work_tools/static', 'work_tools/static'),
     ('work_tools/migrations', 'work_tools/migrations'),
+    ('db.sqlite3', '.'),  # 数据库文件
+    ('config', 'config'),  # 配置文件目录
 ]
 
 # 添加work_tools所有视图模块的隐藏导入
@@ -54,15 +55,19 @@ hiddenimports += [
     'work_tools.navigation',
     'work_tools.forms',
     'work_tools.models',
-    # work_tools视图模块
+    # work_tools视图模块 - 全部
     'work_tools.views',
     'work_tools.views.appr_state',
     'work_tools.views.base',
+    'work_tools.views.configurable_config',
+    'work_tools.views.configurable_data',
     'work_tools.views.contract_budget',
+    'work_tools.views.contract_creator',
     'work_tools.views.contract_item',
     'work_tools.views.contract_price',
     'work_tools.views.contract_terminate',
     'work_tools.views.contract_unit',
+    'work_tools.views.database_config',
     'work_tools.views.dropdown_config',
     'work_tools.views.enddate',
     'work_tools.views.erp_terminate',
@@ -70,23 +75,23 @@ hiddenimports += [
     'work_tools.views.importance',
     'work_tools.views.item_manage',
     'work_tools.views.job_manage',
+    'work_tools.views.order_executor',
     'work_tools.views.org_api',
+    'work_tools.views.plan_date',
     'work_tools.views.price_type',
     'work_tools.views.project_round',
     'work_tools.views.sourcing_terminate',
     'work_tools.views.system_config',
     'work_tools.views.use_list',
+    'work_tools.views.user_org_manage',
     # 第三方依赖
     'waitress',
     'pypinyin',
+    'argparse',
 ]
 
-# 排除不需要的模块
+# 排除不需要的模块（保留tkinter用于文件夹选择功能）
 excludes = [
-    'tkinter',
-    'tk',
-    'tcl',
-    '_tkinter',
     'pytest',
     'unittest',
     'test',
@@ -140,5 +145,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='work_tools',
+    name='work_tools_package',
 )

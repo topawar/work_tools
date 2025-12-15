@@ -4,18 +4,15 @@
 """
 import os
 import re
+import sys
 import logging
 from datetime import datetime
 from django.http import FileResponse, Http404
 from django.conf import settings
 from ..models import OrgDetail
-from ..config import get_config
+from ..config import get_config, _get_runtime_base_dir as get_runtime_base_dir
 
 logger = logging.getLogger('work_tools.view')
-
-
-# SQL文件保存基础目录
-SQL_BASE_DIR = r"D:\临时文件"
 
 
 def save_sql_file(sql_content, prefix='sql', dynamic_id=None):
@@ -34,6 +31,11 @@ def save_sql_file(sql_content, prefix='sql', dynamic_id=None):
         mode = cfg.get('SQL_OUTPUT_MODE', 'hierarchical')
         date_format = cfg.get('SQL_OUTPUT_DATE_FORMAT', '%Y%m/%d')
         
+        # 处理相对路径：如果是相对路径，基于运行时目录
+        if not os.path.isabs(base_path):
+            runtime_base = get_runtime_base_dir()
+            base_path = os.path.join(runtime_base, base_path.lstrip('./'))
+        
         now = datetime.now()
         
         # 根据模式生成目标路径
@@ -43,7 +45,12 @@ def save_sql_file(sql_content, prefix='sql', dynamic_id=None):
         else:
             # 按日期分层模式（默认）
             date_subdir = now.strftime(date_format)
+            # 规范化路径分隔符，将 / 替换为系统分隔符
+            date_subdir = date_subdir.replace('/', os.sep).replace('\\', os.sep)
             target_dir = os.path.join(base_path, date_subdir)
+        
+        # 规范化整个路径
+        target_dir = os.path.normpath(target_dir)
         
         # 创建目录
         os.makedirs(target_dir, exist_ok=True)
@@ -66,25 +73,31 @@ def save_sql_file(sql_content, prefix='sql', dynamic_id=None):
         return filepath
         
     except Exception as e:
-        # 失败时回退到默认路径
+        # 失败时回退到运行时基础目录下的temp_files
         logger.error(f"[文件保存] 使用配置路径失败，回退到默认路径: {str(e)}")
-        now = datetime.now()
-        year_month = now.strftime('%Y%m')
-        day = now.strftime('%d')
-        target_dir = os.path.join(r'D:\临时文件', year_month, day)
-        os.makedirs(target_dir, exist_ok=True)
-        
-        if dynamic_id:
-            filename = f'{dynamic_id}_{prefix}.sql'
-        else:
-            timestamp = now.strftime('%H%M%S')
-            filename = f'{prefix}_{timestamp}.sql'
-        
-        filepath = os.path.join(target_dir, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(sql_content)
-        
-        return filepath
+        try:
+            runtime_base = get_runtime_base_dir()
+            now = datetime.now()
+            year_month = now.strftime('%Y%m')
+            day = now.strftime('%d')
+            target_dir = os.path.join(runtime_base, 'temp_files', 'sql_output', year_month, day)
+            os.makedirs(target_dir, exist_ok=True)
+            
+            if dynamic_id:
+                filename = f'{dynamic_id}_{prefix}.sql'
+            else:
+                timestamp = now.strftime('%H%M%S')
+                filename = f'{prefix}_{timestamp}.sql'
+            
+            filepath = os.path.join(target_dir, filename)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(sql_content)
+            
+            logger.info(f"[文件保存] 使用回退路径保存成功: {filepath}")
+            return filepath
+        except Exception as fallback_error:
+            logger.error(f"[文件保存] 回退路径也失败: {str(fallback_error)}")
+            raise
 
 
 def parse_ops_remark(remark):
@@ -177,8 +190,9 @@ def download_validation_failure_view(request):
         logger.warning(f"文件名格式不正确: {filename}")
         raise Http404("文件格式不正确")
     
-    # 构建文件路径
-    temp_dir = os.path.join(settings.BASE_DIR, 'temp_uploads', 'validation_failures')
+    # 构建文件路径（支持打包后的相对路径）
+    runtime_base = get_runtime_base_dir()
+    temp_dir = os.path.join(runtime_base, 'temp_uploads', 'validation_failures')
     filepath = os.path.join(temp_dir, filename)
     
     # 检查文件是否存在
@@ -211,5 +225,4 @@ __all__ = [
     'normalize_item_id',
     'save_sql_file',
     'download_validation_failure_view',
-    'SQL_BASE_DIR',
 ]

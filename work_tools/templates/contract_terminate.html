@@ -180,6 +180,20 @@
         <div style="margin-top: 8px; color: #155724; font-size: 13px">保存位置: {{ saved_file }}</div>
       </div>
       {% endif %}
+
+      {% if validation_failure %}
+      <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 8px; border: 1px solid #f5c6cb;">
+        <strong style="color: #721c24">❌ 数据校验失败</strong>
+        <div style="margin-top: 8px; color: #721c24; font-size: 13px">
+          总行数: {{ validation_failure.total }} | 通过行数: {{ validation_failure.passed }} | 失败行数: {{ validation_failure.failed }}
+        </div>
+        <div style="margin-top: 8px;">
+          <a href="{% url 'download_validation_failure' %}?file={{ validation_failure.filename }}" style="color: #0056b3; font-weight: 600;">
+            ⬇ 下载失败文件查看详细错误信息
+          </a>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- jQuery & Select2 JS -->

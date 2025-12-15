@@ -1,8 +1,10 @@
 """
 临时文件清理管理命令
 用于定时清理过期的临时文件
+支持打包后的相对路径
 """
 import os
+import sys
 import logging
 from datetime import datetime
 from django.core.management.base import BaseCommand
@@ -10,6 +12,20 @@ from django.conf import settings
 from work_tools.config import get_config
 
 logger = logging.getLogger('work_tools.view')
+
+
+def get_runtime_base_dir():
+    """
+    获取运行时的基础目录
+    支持打包后的exe和源码运行两种模式
+    """
+    # 检查是否为打包后的exe运行
+    if getattr(sys, 'frozen', False):
+        # 打包后，exe所在目录
+        return os.path.dirname(sys.executable)
+    else:
+        # 源码运行，使用Django的BASE_DIR
+        return settings.BASE_DIR
 
 
 class Command(BaseCommand):
@@ -59,18 +75,30 @@ class Command(BaseCommand):
         total_size = 0
         
         # 定义需要清理的目录和文件模式
+        # 使用运行时基础目录，支持打包后的相对路径
+        runtime_base = get_runtime_base_dir()
         cleanup_targets = [
             {
-                'dir': os.path.join(settings.BASE_DIR, 'temp_uploads', 'validation_failures'),
+                'dir': os.path.join(runtime_base, 'temp_uploads', 'validation_failures'),
                 'patterns': ['validation_failed_*.xlsx'],
                 'description': '校验失败文件'
             },
             {
-                'dir': os.path.join(settings.BASE_DIR, 'temp_uploads'),
+                'dir': os.path.join(runtime_base, 'temp_uploads'),
                 'patterns': ['*.csv', 'tmp*.csv'],
                 'description': 'CSV临时文件'
             },
+            {
+                'dir': os.path.join(runtime_base, 'logs'),
+                'patterns': ['*.log.*'],  # 清理旧的日志备份文件
+                'description': '日志备份文件'
+            },
         ]
+        
+        if verbose:
+            msg = f'[清理任务] 运行时基础目录: {runtime_base}'
+            logger.info(msg)
+            self.stdout.write(msg)
         
         for target in cleanup_targets:
             target_dir = target['dir']

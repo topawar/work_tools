@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>合同明细单价修改</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       body {
         background-color: #f8f9fa;
@@ -85,12 +82,16 @@
 
         <!-- 基本信息 -->
         <div class="form-col">
-          {{ form.dynamic_id.label_tag }}<br />{{ form.dynamic_id }}
+          {{ form.dynamic_id.label_tag }}
+          <br />
+          {{ form.dynamic_id }}
         </div>
 
         <!-- 操作备注 -->
         <div class="form-col" style="margin-top: 15px">
-          {{ form.ops_remark.label_tag }}<br />{{ form.ops_remark }}
+          {{ form.ops_remark.label_tag }}
+          <br />
+          {{ form.ops_remark }}
           <div class="form-text">支持ONES链接格式：#69054 修改合同信息</div>
         </div>
 
@@ -98,32 +99,53 @@
         <div class="section-divider">价格信息</div>
         <div class="form-row">
           <div class="form-col">
-            {{ form.new_quantity.label_tag }}<br />{{ form.new_quantity }}
+            {{ form.new_quantity.label_tag }}
+            <br />
+            {{ form.new_quantity }}
           </div>
           <div class="form-col">
-            {{ form.new_price.label_tag }}<br />{{ form.new_price }}
+            {{ form.new_price.label_tag }}
+            <br />
+            {{ form.new_price }}
+          </div>
+          <div class="form-col">
+            {{ form.tax_rate.label_tag }}
+            <br />
+            {{ form.tax_rate }}
           </div>
         </div>
 
         <div class="section-divider">原值（可选，用于生成回退）</div>
         <div class="form-row">
           <div class="form-col">
-            {{ form.orig_quantity.label_tag }}<br />{{ form.orig_quantity }}
+            {{ form.orig_quantity.label_tag }}
+            <br />
+            {{ form.orig_quantity }}
           </div>
           <div class="form-col">
-            {{ form.orig_price.label_tag }}<br />{{ form.orig_price }}
+            {{ form.orig_price.label_tag }}
+            <br />
+            {{ form.orig_price }}
+          </div>
+          <div class="form-col">
+            {{ form.orig_tax_rate.label_tag }}
+            <br />
+            {{ form.orig_tax_rate }}
           </div>
         </div>
 
         <!-- 合同明细行ID -->
         <div class="section-divider">合同明细行信息</div>
         <div class="form-col">
-          {{ form.single_line_id.label_tag }}<br />{{ form.single_line_id }}
+          {{ form.single_line_id.label_tag }}
+          <br />
+          {{ form.single_line_id }}
         </div>
 
         <!-- 批量导入 -->
         <div class="form-col" style="margin-top: 15px">
-          {{ form.excel_file.label_tag }}<br />
+          {{ form.excel_file.label_tag }}
+          <br />
           {{ form.excel_file }}
           <div class="form-text">
             {{ form.excel_file.help_text }}
@@ -132,9 +154,7 @@
         </div>
 
         {% if form.non_field_errors %}
-        <div class="alert alert-danger" style="margin-top: 10px">
-          {{ form.non_field_errors }}
-        </div>
+        <div class="alert alert-danger" style="margin-top: 10px">{{ form.non_field_errors }}</div>
         {% endif %}
 
         <div class="form-row" style="gap: 10px">
@@ -147,20 +167,24 @@
         </div>
       </form>
 
-      {% if saved_file %}
-      <div
-        style="
-          margin-top: 20px;
-          padding: 15px;
-          background: #d4edda;
-          border-radius: 8px;
-          border: 1px solid #c3e6cb;
-        "
-      >
-        <strong style="color: #155724">✅ SQL文件已生成</strong>
-        <div style="margin-top: 8px; color: #155724; font-size: 13px">
-          保存位置: {{ saved_file }}
+      {% if validation_failure %}
+      <div style="margin-top: 20px; padding: 15px; background: #f8d7da; border-radius: 8px; border: 1px solid #f5c6cb;">
+        <strong style="color: #721c24">❌ 数据校验失败</strong>
+        <div style="margin-top: 8px; color: #721c24; font-size: 13px">
+          总行数: {{ validation_failure.total }} | 通过行数: {{ validation_failure.passed }} | 失败行数: {{ validation_failure.failed }}
         </div>
+        <div style="margin-top: 8px;">
+          <a href="{% url 'download_validation_failure' %}?file={{ validation_failure.filename }}" style="color: #0056b3; font-weight: 600;">
+            ⬇ 下载失败文件查看详细错误信息
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if saved_file %}
+      <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border: 1px solid #c3e6cb">
+        <strong style="color: #155724">✅ SQL文件已生成</strong>
+        <div style="margin-top: 8px; color: #155724; font-size: 13px">保存位置: {{ saved_file }}</div>
       </div>
       {% endif %}
     </div>

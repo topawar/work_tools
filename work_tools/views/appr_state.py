@@ -8,11 +8,16 @@ import logging
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import ApprStateChangeForm, APPR_STATE_CHOICES
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from ..logger_utils import log_view_input
 from .base import parse_ops_remark, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
 
 try:
     import openpyxl
@@ -91,6 +96,51 @@ def parse_appr_state_excel(file):
 
     logger.info(f"[合同状态] Excel解析完成, 记录数={len(records)}")
     return records
+
+
+def validate_appr_state_records(records):
+    """校验合同状态修改记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 必填项校验：合同ID必填
+        error = validate_required(record.get('bpo_id'), '合同ID')
+        if error:
+            errors.append(error)
+        
+        # 必填项校验：新合同状态必填
+        error = validate_required(record.get('new_appr_state'), '新合同状态')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def generate_appr_state_sql_bulk(records, ops_remark=None):
@@ -290,6 +340,7 @@ def download_appr_state_template(request):
 def appr_state_change_view(request):
     """合同状态修改视图"""
     saved_file = None
+    validation_failure = None
     
     # 加载合同状态选项传递给模板
     try:
@@ -318,6 +369,33 @@ def appr_state_change_view(request):
                 if excel_file:
                     records = parse_appr_state_excel(excel_file)
                     logger.info(f"[合同状态] Excel模式, 记录数={len(records)}")
+                    
+                    # 执行数据校验
+                    validation_result = validate_appr_state_records(records)
+                    
+                    if not validation_result['valid']:
+                        # 校验失败，生成失败文件
+                        temp_file = generate_validation_failure_excel(
+                            excel_file,
+                            validation_result,
+                            'appr_state'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                        
+                        return render(request, 'appr_state_change.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'appr_state_change',
+                            'sidebar_groups': get_sidebar_groups(),
+                            'contract_status_options': contract_status_options,
+                        })
                 else:
                     # 单条记录
                     rec = {
@@ -349,8 +427,9 @@ def appr_state_change_view(request):
     return render(request, 'appr_state_change.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'appr_state_change',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
         'contract_status_options': contract_status_options,
     })
 

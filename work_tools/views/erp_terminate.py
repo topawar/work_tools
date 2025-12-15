@@ -8,10 +8,63 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from ..forms import ErpTerminateForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in
 from .base import save_sql_file, parse_ops_remark
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
+
+
+def validate_erp_terminate_records(records):
+    """校验核电ERP终止记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 三个字段都必填:询价单编号、采购方案编号、采购包编号
+        error = validate_required(record.get('inq_id'), '询价单编号')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('purchase_scheme_no'), '采购方案编号')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('purchase_package_no'), '采购包编号')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def parse_erp_excel(file):
@@ -158,6 +211,7 @@ def generate_erp_terminate_sql(records, ops_remark=None):
 def erp_terminate_view(request):
     """ERP合同终止视图"""
     saved_file = None
+    validation_failure = None  # 新增
     if request.method == 'POST':
         form = ErpTerminateForm(request.POST, request.FILES)
         if form.is_valid():
@@ -166,6 +220,32 @@ def erp_terminate_view(request):
 
             if cd.get('excel_file'):
                 records = parse_erp_excel(cd['excel_file'])
+                
+                # 执行数据校验
+                validation_result = validate_erp_terminate_records(records)
+                
+                if not validation_result['valid']:
+                    # 校验失败,生成失败文件
+                    temp_file = generate_validation_failure_excel(
+                        cd['excel_file'],
+                        validation_result,
+                        'erp_terminate'
+                    )
+                    
+                    if temp_file:
+                        validation_failure = {
+                            'total': validation_result['total'],
+                            'passed': validation_result['passed'],
+                            'failed': validation_result['failed'],
+                            'filename': get_temp_filename_from_path(temp_file)
+                        }
+                    
+                    return render(request, 'erp_terminate_form.html', {
+                        'form': form,
+                        'validation_failure': validation_failure,
+                        'active_menu': 'erp_terminate',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
             else:
                 rec = {
                     'inq_id': (cd.get('inq_id') or '').strip() or None,
@@ -200,8 +280,9 @@ def erp_terminate_view(request):
     return render(request, 'erp_terminate_form.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,  # 新增
         'active_menu': 'erp_terminate',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

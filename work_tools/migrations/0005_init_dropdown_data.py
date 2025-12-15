@@ -17,18 +17,6 @@ def init_dropdown_data(apps, schema_editor):
             'is_active': True,
         },
         {
-            'group_code': 'bid_status',
-            'group_name': '中标状态',
-            'description': '中标结果的状态值',
-            'is_active': True,
-        },
-        {
-            'group_code': 'report_choice',
-            'group_name': '国资委报送',
-            'description': '是否报送国资委的选项',
-            'is_active': True,
-        },
-        {
             'group_code': 'importance_level',
             'group_name': '物项重要性',
             'description': '物项的重要性级别分类',
@@ -62,15 +50,6 @@ def init_dropdown_data(apps, schema_editor):
         {'group_code': 'contract_status', 'option_code': 'LOCK', 'option_label': '冻结', 'sort_order': 15, 'is_system': True},
         {'group_code': 'contract_status', 'option_code': 'STOP', 'option_label': '合同终止', 'sort_order': 16, 'is_system': True},
         {'group_code': 'contract_status', 'option_code': 'CLOSED', 'option_label': '已失效', 'sort_order': 17, 'is_system': True},
-        
-        # 中标状态
-        {'group_code': 'bid_status', 'option_code': '', 'option_label': '-- 请选择中标状态 --', 'sort_order': 0, 'is_system': True},
-        {'group_code': 'bid_status', 'option_code': '40', 'option_label': '中标', 'sort_order': 1, 'is_system': True},
-        {'group_code': 'bid_status', 'option_code': '50', 'option_label': '已签约', 'sort_order': 2, 'is_system': True},
-        
-        # 国资委报送
-        {'group_code': 'report_choice', 'option_code': 'yes', 'option_label': '是（报送）', 'sort_order': 1, 'is_system': True},
-        {'group_code': 'report_choice', 'option_code': 'no', 'option_label': '否（不报送）', 'sort_order': 2, 'is_system': True},
         
         # 物项重要性
         {'group_code': 'importance_level', 'option_code': '0', 'option_label': '一般准入备案类 0', 'sort_order': 1, 'is_system': True},

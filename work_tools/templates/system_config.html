@@ -290,7 +290,7 @@
                 <i class="bi bi-file-earmark-text"></i>
               </div>
               <span>合同模块</span>
-              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(8个功能)</span>
+              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(9个功能)</span>
             </div>
             <div class="group-controls">
               <button type="button" class="btn-group-control" data-group="contract" data-action="check">
@@ -334,6 +334,10 @@
               <input class="module-checkbox" type="checkbox" name="mod_sourcing_terminate" id="mod_sourcing_terminate" data-group="contract" {% if cfg.MERGE_MODULES.sourcing_terminate %}checked{% endif %} />
               <span class="module-label">终止简化寻源合同</span>
             </label>
+            <label class="module-item" data-module="mod_creator">
+              <input class="module-checkbox" type="checkbox" name="mod_creator" id="mod_creator" data-group="contract" {% if cfg.MERGE_MODULES.creator %}checked{% endif %} />
+              <span class="module-label">合同创建人修改</span>
+            </label>
           </div>
         </div>
 
@@ -345,7 +349,7 @@
                 <i class="bi bi-diagram-3"></i>
               </div>
               <span>计划-寻源模块</span>
-              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(6个功能)</span>
+              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(8个功能)</span>
             </div>
             <div class="group-controls">
               <button type="button" class="btn-group-control" data-group="sourcing" data-action="check">
@@ -380,6 +384,14 @@
             <label class="module-item" data-module="mod_project_round">
               <input class="module-checkbox" type="checkbox" name="mod_project_round" id="mod_project_round" data-group="sourcing" {% if cfg.MERGE_MODULES.project_round %}checked{% endif %} />
               <span class="module-label">项目轮次</span>
+            </label>
+            <label class="module-item" data-module="mod_executor">
+              <input class="module-checkbox" type="checkbox" name="mod_executor" id="mod_executor" data-group="sourcing" {% if cfg.MERGE_MODULES.executor %}checked{% endif %} />
+              <span class="module-label">订单执行人修改</span>
+            </label>
+            <label class="module-item" data-module="mod_plan_date">
+              <input class="module-checkbox" type="checkbox" name="mod_plan_date" id="mod_plan_date" data-group="sourcing" {% if cfg.MERGE_MODULES.plan_date %}checked{% endif %} />
+              <span class="module-label">需求计划日期修改</span>
             </label>
           </div>
         </div>
@@ -459,9 +471,10 @@
         }
         
         // 分组按钮
-        var groupToggles = document.querySelectorAll("[data-group]");
+        var groupToggles = document.querySelectorAll("button[data-group][data-action]");
         groupToggles.forEach(function (btn) {
-          btn.addEventListener("click", function () {
+          btn.addEventListener("click", function (e) {
+            e.preventDefault(); // 阻止默认行为
             var group = btn.getAttribute("data-group");
             var action = btn.getAttribute("data-action");
             var items = document.querySelectorAll('input.module-checkbox[type="checkbox"][data-group="' + group + '"]');

@@ -8,7 +8,7 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 
 from ..models import DropdownGroup, DropdownOption
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..dropdown_utils import clear_dropdown_cache
 
 logger = logging.getLogger('work_tools.view')
@@ -44,7 +44,7 @@ def dropdown_config_view(request):
             'groups': groups,
             'selected_group': selected_group,
             'options': options,
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
             'active_menu': 'dropdown_config',
             'message': message,
             'error': error,
@@ -55,7 +55,7 @@ def dropdown_config_view(request):
             'groups': [],
             'selected_group': None,
             'options': [],
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
             'active_menu': 'dropdown_config',
             'error': f'加载失败: {str(e)}',
         })
@@ -65,18 +65,15 @@ def dropdown_config_view(request):
 def dropdown_group_add(request):
     """添加配置分组"""
     try:
-        group_code = request.POST.get('group_code', '').strip()
         group_name = request.POST.get('group_name', '').strip()
         description = request.POST.get('description', '').strip()
         
         # 验证输入
-        if not group_code or not group_name:
-            return redirect(f'/dropdown-config/?error=分组编码和名称不能为空')
+        if not group_name:
+            return redirect(f'/dropdown-config/?error=分组名称不能为空')
         
-        # 验证编码格式（只允许字母、数字、下划线）
-        import re
-        if not re.match(r'^[a-zA-Z0-9_]+$', group_code):
-            return redirect(f'/dropdown-config/?error=分组编码只能包含字母、数字、下划线')
+        # 生成分组编码
+        group_code = _generate_group_code()
         
         # 创建分组
         group = DropdownGroup.objects.create(
@@ -268,6 +265,22 @@ def dropdown_item_toggle(request):
     except Exception as e:
         logger.error(f"[配置管理] 切换配置项状态失败: {e}")
         return redirect(f'/dropdown-config/?error=操作失败: {str(e)}')
+
+
+def _generate_group_code():
+    """生成唯一的分组编码"""
+    import random
+    from datetime import datetime
+    
+    while True:
+        # 格式: grp_YYYYMMDDHHmmss_RRR
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        random_num = random.randint(100, 999)
+        group_code = f'grp_{timestamp}_{random_num}'
+        
+        # 检查是否重复
+        if not DropdownGroup.objects.filter(group_code=group_code).exists():
+            return group_code
 
 
 __all__ = [

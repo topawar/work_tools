@@ -11,7 +11,7 @@ from django.db import close_old_connections
 
 from ..models import OrgDetail, ImportJob
 from ..forms import OrgImportForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 
 # 导入锁
 IMPORT_LOCK = threading.Lock()
@@ -55,18 +55,26 @@ def org_import_view(request):
                             text = rf.read().decode('utf-8-sig')
                         import csv
                         reader = csv.DictReader(io.StringIO(text))
+                        # 将列名转换为小写以忽略大小写
+                        fieldnames_lower = {h.strip().lower(): h.strip() for h in reader.fieldnames or []}
                         required = {'company_code', 'company_name',
                                     'plate_code', 'plate_name'}
-                        if not required.issubset(set([h.strip() for h in reader.fieldnames or []])):
+                        if not required.issubset(set(fieldnames_lower.keys())):
                             raise ValueError(
-                                'CSV列需包含：company_code, company_name, plate_code, plate_name')
+                                'CSV列需包含（忽略大小写）：company_code, company_name, plate_code, plate_name')
                         done = 0
                         OrgDetail.objects.all().delete()
                         for row in reader:
-                            cc = (row.get('company_code') or '').strip()
-                            cn = (row.get('company_name') or '').strip()
-                            pc = (row.get('plate_code') or '').strip()
-                            pn = (row.get('plate_name') or '').strip()
+                            # 使用忽略大小写的方式获取列值
+                            def get_value(row, key):
+                                """忽略大小写获取列值"""
+                                original_key = fieldnames_lower.get(key.lower())
+                                return (row.get(original_key) or '').strip() if original_key else ''
+                            
+                            cc = get_value(row, 'company_code')
+                            cn = get_value(row, 'company_name')
+                            pc = get_value(row, 'plate_code')
+                            pn = get_value(row, 'plate_name')
                             if not any([cc, cn, pc, pn]):
                                 continue
                             if cc:
@@ -94,14 +102,14 @@ def org_import_view(request):
         return render(request, 'org_import.html', {
             'form': form,
             'active_menu': 'org_import',
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
         })
     else:
         form = OrgImportForm()
         return render(request, 'org_import.html', {
             'form': form,
             'active_menu': 'org_import',
-            'sidebar_groups': SIDEBAR_GROUPS,
+            'sidebar_groups': get_sidebar_groups(),
         })
 
 

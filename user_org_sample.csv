@@ -1,0 +1,6 @@
+login_name,user_name,dept_code,dept_name,company_code,company_name,plate_code,plate_name
+zhangsan,张三,D001,技术部,C001,北京科技有限公司,P001,技术板块
+lisi,李四,D002,财务部,C001,北京科技有限公司,P002,财务板块
+wangwu,王五,D003,市场部,C002,上海贸易有限公司,P003,市场板块
+zhaoliu,赵六,D001,技术部,C001,北京科技有限公司,P001,技术板块
+qianqi,钱七,D004,人力资源部,C003,深圳管理有限公司,P004,管理板块

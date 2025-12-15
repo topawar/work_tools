@@ -8,11 +8,16 @@ import logging
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import ContractTerminateForm, BID_STATUS_CHOICES
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from ..logger_utils import log_view_input
 from .base import parse_ops_remark, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
 
 try:
     import openpyxl
@@ -86,6 +91,46 @@ def parse_terminate_excel(file):
 
     logger.info(f"[终止合同] Excel解析完成, 记录数={len(records)}")
     return records
+
+
+def validate_terminate_records(records):
+    """校验终止合同记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 必填项校验：合同ID必填
+        error = validate_required(record.get('bpo_id'), '合同ID')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def generate_terminate_sql_bulk(records, ops_remark=None):
@@ -226,6 +271,7 @@ def generate_terminate_sql_bulk(records, ops_remark=None):
 def contract_terminate_view(request):
     """终止合同视图"""
     saved_file = None
+    validation_failure = None
 
     if request.method == 'POST':
         form = ContractTerminateForm(request.POST, request.FILES)
@@ -246,6 +292,32 @@ def contract_terminate_view(request):
                 if excel_file:
                     records = parse_terminate_excel(excel_file)
                     logger.info(f"[终止合同] Excel模式, 记录数={len(records)}")
+                    
+                    # 执行数据校验
+                    validation_result = validate_terminate_records(records)
+                    
+                    if not validation_result['valid']:
+                        # 校验失败，生成失败文件
+                        temp_file = generate_validation_failure_excel(
+                            excel_file,
+                            validation_result,
+                            'contract_terminate'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                        
+                        return render(request, 'contract_terminate.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'contract_terminate',
+                            'sidebar_groups': get_sidebar_groups(),
+                        })
                 else:
                     # 单条记录
                     rec = {
@@ -277,8 +349,9 @@ def contract_terminate_view(request):
     return render(request, 'contract_terminate.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'contract_terminate',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

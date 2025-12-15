@@ -1,0 +1,4 @@
+LOGIN_NAME,USER_NAME,DEPT_CODE,DEPT_NAME,COMPANY_CODE,COMPANY_NAME,PLATE_CODE,PLATE_NAME
+zhangsan,张三,D001,技术部,C001,北京科技有限公司,P001,技术板块
+lisi,李四,D002,财务部,C001,北京科技有限公司,P002,财务板块
+wangwu,王五,D003,市场部,C002,上海贸易有限公司,P003,市场板块

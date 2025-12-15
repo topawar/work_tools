@@ -8,11 +8,16 @@ import logging
 from django.shortcuts import render
 from django.http import FileResponse
 from ..forms import ProjectRoundForm
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 from ..config import get_config
 from ..sql_merge import chunk_list, format_in, merge_by_key
 from ..logger_utils import log_view_input
 from .base import parse_ops_remark, save_sql_file
+from ..validation_utils import (
+    validate_required,
+    generate_validation_failure_excel,
+    get_temp_filename_from_path
+)
 
 try:
     import openpyxl
@@ -88,6 +93,54 @@ def parse_project_round_excel(file):
 
     logger.info(f"[项目轮次] Excel解析完成, 记录数={len(records)}")
     return records
+
+
+def validate_project_round_records(records):
+    """校验项目轮次记录"""
+    results = []
+    passed_count = 0
+    failed_count = 0
+    
+    for idx, record in enumerate(records):
+        row_number = idx + 2  # 跳过表头
+        errors = []
+        
+        # 三个字段都必填:采购方案编号、物理轮次、原物理轮次
+        error = validate_required(record.get('purchase_scheme_no'), '采购方案编号')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('round_number'), '物理轮次')
+        if error:
+            errors.append(error)
+        
+        error = validate_required(record.get('orig_round_number'), '原物理轮次')
+        if error:
+            errors.append(error)
+        
+        # 记录结果
+        if errors:
+            results.append({
+                'row_number': row_number,
+                'valid': False,
+                'errors': errors
+            })
+            failed_count += 1
+        else:
+            results.append({
+                'row_number': row_number,
+                'valid': True,
+                'errors': []
+            })
+            passed_count += 1
+    
+    return {
+        'valid': failed_count == 0,
+        'total': len(records),
+        'passed': passed_count,
+        'failed': failed_count,
+        'results': results
+    }
 
 
 def generate_project_round_sql_bulk(records, ops_remark=None):
@@ -168,6 +221,7 @@ def generate_project_round_sql_bulk(records, ops_remark=None):
 def project_round_view(request):
     """项目轮次视图"""
     saved_file = None
+    validation_failure = None  # 新增
 
     if request.method == 'POST':
         form = ProjectRoundForm(request.POST, request.FILES)
@@ -188,6 +242,32 @@ def project_round_view(request):
                 if excel_file:
                     records = parse_project_round_excel(excel_file)
                     logger.info(f"[项目轮次] Excel模式, 记录数={len(records)}")
+                    
+                    # 执行数据校验
+                    validation_result = validate_project_round_records(records)
+                    
+                    if not validation_result['valid']:
+                        # 校验失败,生成失败文件
+                        temp_file = generate_validation_failure_excel(
+                            cd['excel_file'],
+                            validation_result,
+                            'project_round'
+                        )
+                        
+                        if temp_file:
+                            validation_failure = {
+                                'total': validation_result['total'],
+                                'passed': validation_result['passed'],
+                                'failed': validation_result['failed'],
+                                'filename': get_temp_filename_from_path(temp_file)
+                            }
+                        
+                        return render(request, 'project_round.html', {
+                            'form': form,
+                            'validation_failure': validation_failure,
+                            'active_menu': 'project_round',
+                            'sidebar_groups': get_sidebar_groups(),
+                        })
                 else:
                     # 单条记录
                     rec = {
@@ -231,8 +311,9 @@ def project_round_view(request):
     return render(request, 'project_round.html', {
         'form': form,
         'saved_file': saved_file,
+        'validation_failure': validation_failure,
         'active_menu': 'project_round',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

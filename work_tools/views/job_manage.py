@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from ..models import ImportJob
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 
 
 def job_list_view(request):
@@ -14,7 +14,7 @@ def job_list_view(request):
     return render(request, 'jobs.html', {
         'jobs': jobs,
         'active_menu': 'job_list',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 
@@ -24,7 +24,7 @@ def job_detail_view(request, job_id):
     return render(request, 'job_detail.html', {
         'job': job,
         'active_menu': 'job_list',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
     })
 
 

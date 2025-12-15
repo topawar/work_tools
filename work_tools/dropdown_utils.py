@@ -17,6 +17,7 @@ def get_dropdown_options(group_code, include_empty=True, empty_label='请选择'
         
     Returns:
         元组列表，格式为 [(选项编码, 选项标签), ...]
+        如果配置不存在或未启用，返回空列表
     """
     # 尝试从缓存获取
     cache_key = f'dropdown_options_{group_code}'
@@ -33,8 +34,8 @@ def get_dropdown_options(group_code, include_empty=True, empty_label='请选择'
             ).first()
             
             if not group:
-                logger.warning(f"[配置加载] 未找到配置分组: {group_code}")
-                return _get_fallback_options(group_code, include_empty, empty_label)
+                logger.warning(f"[配置加载] 未找到或未启用配置分组: {group_code}，返回空列表")
+                return []
             
             # 查询启用的配置项
             option_objs = DropdownOption.objects.filter(
@@ -49,8 +50,8 @@ def get_dropdown_options(group_code, include_empty=True, empty_label='请选择'
             logger.info(f"[配置加载] 成功加载配置分组 {group_code}，共 {len(options)} 项")
             
         except Exception as e:
-            logger.error(f"[配置加载] 加载配置分组 {group_code} 失败: {e}")
-            return _get_fallback_options(group_code, include_empty, empty_label)
+            logger.error(f"[配置加载] 加载配置分组 {group_code} 失败: {e}，返回空列表")
+            return []
     
     # 根据参数决定是否添加空选项
     if include_empty and (not options or options[0][0] != ''):
@@ -80,40 +81,6 @@ def clear_dropdown_cache(group_code=None):
             cache.delete(cache_key)
         logger.info("[缓存清理] 已清除所有下拉框配置缓存")
 
-
-def _get_fallback_options(group_code, include_empty, empty_label):
-    """
-    回退方案：当数据库中没有配置数据时，使用硬编码的选项
-    
-    这是为了向后兼容和应急使用
-    """
-    from .forms import APPR_STATE_CHOICES, BID_STATUS_CHOICES
-    
-    fallback_map = {
-        'contract_status': APPR_STATE_CHOICES,
-        'bid_status': BID_STATUS_CHOICES,
-        'report_choice': [
-            ('yes', '是（报送）'),
-            ('no', '否（不报送）'),
-        ],
-        'importance_level': [
-            ('0', '一般准入备案类 0'),
-            ('1', '一般自行管理类 1'),
-            ('4', '一般 4'),
-            ('3', '核心 3'),
-            ('2', '重要 2'),
-        ],
-    }
-    
-    options = fallback_map.get(group_code, [])
-    logger.warning(f"[配置加载] 使用硬编码回退选项: {group_code}")
-    
-    if not include_empty and options and options[0][0] == '':
-        return options[1:]
-    elif include_empty and (not options or options[0][0] != ''):
-        return [('', empty_label)] + options
-    
-    return options
 
 
 __all__ = ['get_dropdown_options', 'clear_dropdown_cache']

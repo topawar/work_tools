@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 <style>
   html,
   body {
@@ -215,10 +215,24 @@
   <div class="navigation-groups" id="navigationGroups">
     {% if sidebar_groups %} {% for g in sidebar_groups %}
     <details class="sidebar-group" {% if g.open %}open{% endif %}>
-      <summary class="sidebar-summary"><i class="{{ g.icon }}"></i>{{ g.title }}</summary>
-      {% for it in g.items %}
-      <a class="nav-link-side {% if active_menu == it.url_name %}active{% endif %}" href="{% url it.url_name %}"><i class="{{ it.icon }}"></i>{{ it.label }}</a>
-      {% endfor %}
+      <summary class="sidebar-summary">
+        <i class="{{ g.icon }}"></i>
+        {{ g.title }}
+      </summary>
+      {% for it in g.items %} {% if it.url_kwargs %}
+      <a
+        class="nav-link-side {% if active_menu == it.url_name or active_menu == it.url_name|add:'_'|add:it.url_kwargs.table_code %}active{% endif %}"
+        href="{% url it.url_name table_code=it.url_kwargs.table_code %}"
+      >
+        <i class="{{ it.icon }}"></i>
+        {{ it.label }}
+      </a>
+      {% else %}
+      <a class="nav-link-side {% if active_menu == it.url_name %}active{% endif %}" href="{% url it.url_name %}">
+        <i class="{{ it.icon }}"></i>
+        {{ it.label }}
+      </a>
+      {% endif %} {% endfor %}
     </details>
     {% endfor %} {% else %}
     <details class="sidebar-group" open>
@@ -296,7 +310,11 @@
       icon: '{{ it.icon|escapejs }}',
       pinyin_full: '{{ it.pinyin_full|escapejs }}',
       pinyin_abbr: '{{ it.pinyin_abbr|escapejs }}',
+      {% if it.url_kwargs %}
+      url: '{% url it.url_name table_code=it.url_kwargs.table_code %}'
+      {% else %}
       url: '{% url it.url_name %}'
+      {% endif %}
     });
     {% endfor %}
     {% endfor %}

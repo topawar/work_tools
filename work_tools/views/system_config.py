@@ -6,7 +6,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
 
 from ..config import get_config, set_config, get_module_names
-from ..navigation import SIDEBAR_GROUPS
+from ..navigation import get_sidebar_groups
 
 logger = logging.getLogger('work_tools.view')
 
@@ -86,7 +86,7 @@ def system_config_view(request):
     return render(request, 'system_config.html', {
         'cfg': cfg,
         'active_menu': 'system_config',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
         'saved': saved,
         'error': error,
     })
@@ -220,7 +220,7 @@ def file_path_config_view(request):
     return render(request, 'file_path_config.html', {
         'cfg': cfg,
         'active_menu': 'file_path_config',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
         'saved': saved,
         'error': error,
         'warning': warning,
@@ -269,7 +269,7 @@ def cleanup_config_view(request):
     return render(request, 'cleanup_config.html', {
         'cfg': cfg,
         'active_menu': 'cleanup_config',
-        'sidebar_groups': SIDEBAR_GROUPS,
+        'sidebar_groups': get_sidebar_groups(),
         'saved': saved,
         'error': error,
     })

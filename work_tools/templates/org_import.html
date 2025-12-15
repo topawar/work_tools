@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>组织机构导入</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       body {
         background-color: #f8f9fa;
@@ -26,6 +23,26 @@
         margin-bottom: 20px;
         font-size: 20px;
         color: #333;
+      }
+      .header-with-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .copy-sql-btn {
+        padding: 6px 12px;
+        background-color: #198754;
+        border: none;
+        color: white;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .copy-sql-btn:hover {
+        background-color: #146c43;
       }
       .section-divider {
         margin: 15px 0;
@@ -49,17 +66,17 @@
   <body>
     {% include 'sidebar.html' %}
     <div class="form-container">
-      <h2>组织机构对照表导入（CSV）</h2>
+      <div class="header-with-button">
+        <h2 style="margin: 0">组织机构对照表导入（CSV）</h2>
+        <button type="button" class="copy-sql-btn" onclick="copySqlToClipboard()">复制查询语句</button>
+      </div>
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="mb-3">
           {{ form.csv_file.label_tag }} {{ form.csv_file }}
-          <div style="font-size: 12px; color: #666; margin-top: 3px">
-            需包含列：company_code, company_name, plate_code, plate_name；编码
-            UTF-8 或 UTF-8 BOM
-          </div>
+          <div style="font-size: 12px; color: #666; margin-top: 3px">需包含列：company_code, company_name, plate_code, plate_name（忽略大小写）；编码 UTF-8 或 UTF-8 BOM</div>
         </div>
-        
+
         {% if form.non_field_errors %}
         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
         {% endif %} {% if message %}
@@ -70,6 +87,85 @@
     </div>
   </body>
   <script>
+    // 复制SQL查询语句到剪贴板
+    function copySqlToClipboard() {
+      const sql = `-- 组织机构对照表导入（CSV）pm
+SELECT DISTINCT
+	company_code,
+	company_name,
+	plate_code,
+	plate_name 
+FROM
+	tpm_org_detail;`;
+
+      // 尝试使用现代 clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(sql)
+          .then(() => {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "已复制！";
+            btn.style.backgroundColor = "#0d6efd";
+            setTimeout(() => {
+              btn.innerText = originalText;
+              btn.style.backgroundColor = "#198754";
+            }, 2000);
+          })
+          .catch((err) => {
+            fallbackCopy(sql);
+          });
+      } else {
+        fallbackCopy(sql);
+      }
+    }
+
+    // 备用复制方案：显示弹窗让用户手动复制
+    function fallbackCopy(text) {
+      const modal = document.createElement("div");
+      modal.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999";
+
+      const box = document.createElement("div");
+      box.style.cssText = "background:white;padding:20px;border-radius:8px;max-width:600px;width:90%";
+
+      const title = document.createElement("h3");
+      title.innerText = "请手动复制SQL查询语句";
+      title.style.cssText = "margin:0 0 15px 0;font-size:18px";
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.cssText = "width:100%;height:300px;padding:10px;border:1px solid #ddd;border-radius:4px;font-family:monospace;font-size:13px;resize:vertical";
+      textarea.readOnly = true;
+
+      const btnContainer = document.createElement("div");
+      btnContainer.style.cssText = "margin-top:15px;text-align:right";
+
+      const closeBtn = document.createElement("button");
+      closeBtn.innerText = "关闭";
+      closeBtn.style.cssText = "padding:8px 20px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer";
+      closeBtn.onclick = () => document.body.removeChild(modal);
+
+      btnContainer.appendChild(closeBtn);
+      box.appendChild(title);
+      box.appendChild(textarea);
+      box.appendChild(btnContainer);
+      modal.appendChild(box);
+      document.body.appendChild(modal);
+
+      // 自动选中文本
+      textarea.select();
+      textarea.focus();
+
+      // 尝试使用旧版复制方法
+      try {
+        document.execCommand("copy");
+        title.innerText = "SQL已复制到剪贴板！";
+        title.style.color = "#198754";
+      } catch (err) {
+        // 如果还是失败,保持原标题让用户手动复制
+      }
+    }
+
     const form = document.querySelector("form");
     if (form) {
       form.addEventListener("submit", function (e) {
