@@ -7,8 +7,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ table_config.display_name }}</title>
     <link href="{% static 'vendor/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'vendor/css/bootstrap-icons.min.css' %}">
-    <link href="{% static 'css/modern-ui.css' %}" rel="stylesheet">
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 20px;
+        color: #333;
+      }
+      .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        align-items: flex-end;
+      }
+      .form-col {
+        flex: 1;
+      }
+      .form-control {
+        padding: 6px 8px;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 8px;
+        background-color: #2563eb;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-top: 10px;
+      }
+      .clear-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 8px;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 4px;
+        font-weight: 600;
+        text-align: center;
+        margin-top: 10px;
+        text-decoration: none;
+      }
+      .section-divider {
+        margin: 15px 0;
+        padding: 8px 0;
+        font-weight: 600;
+        border-bottom: 2px solid #2563eb;
+        font-size: 16px;
+      }
+      .form-text {
+        font-size: 12px;
+      }
+    </style>
 </head>
   <body>
     {% include 'sidebar.html' %}
@@ -75,62 +139,25 @@
         </div>
 
         {% if form.non_field_errors %}
-        <div class="alert alert-danger" style="margin-top: 10px">
-          {{ form.non_field_errors }}
-        </div>
+        <div class="alert alert-danger" style="margin-top: 10px">{{ form.non_field_errors }}</div>
         {% endif %}
 
         <div class="form-row" style="gap: 10px">
           <div class="form-col">
-            <button type="submit" class="btn btn-primary btn-full">
-                    <i class="bi bi-gear"></i>
-                    生成 SQL
-                </button>
+            <button type="submit" class="submit-btn">生成 SQL</button>
           </div>
           <div class="form-col">
-            <a href="?clear=1" class="btn btn-secondary btn-full">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    清除
-                </a>
+            <a href="?clear=1" class="clear-btn">清除</a>
           </div>
         </div>
       </form>
 
       {% if saved_file %}
-        <div class="alert alert-success slide-up">
-            <i class="alert-icon bi bi-check-circle"></i>
-            <div class="alert-content">
-                <div class="alert-title">SQL文件生成成功</div>
-                <div class="alert-message">文件已保存到: {{ saved_file }}</div>
-            </div>
-        </div>
-        {% endif %}
+      <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border: 1px solid #c3e6cb">
+        <strong style="color: #155724">✅ SQL文件已生成</strong>
+        <div style="margin-top: 8px; color: #155724; font-size: 13px">保存位置: {{ saved_file }}</div>
+      </div>
+      {% endif %}
     </div>
-
-    <script src="{% static 'vendor/js/jquery-3.6.0.min.js' %}"></script>
-    <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'vendor/js/select2.min.js' %}"></script>
-    <script>
-      $(document).ready(function() {
-        // 为所有下拉框启用 Select2 搜索功能
-        $('.form-select').select2({
-          theme: "bootstrap-5",
-          placeholder: "请选择",
-          allowClear: true,
-          width: '100%'
-        });
-      });
-    </script>
-  
-    <script src="{% static 'js/ui-enhancements.js' %}"></script>
-    <script src="{% static 'js/async-operations.js' %}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 键盘快捷键提示
-            if (window.ui) {
-                window.ui.showToast('提示: 使用 Ctrl+S 快速提交表单', 'info', 3000);
-            }
-        });
-    </script>
-</body>
+  </body>
 </html>
