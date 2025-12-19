@@ -25,8 +25,14 @@ def render_field(field, input_class='', label_class='', help_text=''):
     用法:
     {% render_field form.field_name input_class="form-input" label_class="form-label" %}
     """
+    # 如果提供了input_class，则添加到字段的widget属性中
+    rendered_field = field
+    if input_class and hasattr(field, 'as_widget'):
+        rendered_field = field.as_widget(attrs={'class': input_class})
+    
     return {
         'field': field,
+        'rendered_field': rendered_field,
         'input_class': input_class,
         'label_class': label_class,
         'help_text': help_text or (field.help_text if hasattr(field, 'help_text') else ''),

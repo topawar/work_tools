@@ -6,11 +6,7 @@
     </label>
     {% endif %}
     
-    {% if input_class %}
-        {{ field|add_class:input_class }}
-    {% else %}
-        {{ field }}
-    {% endif %}
+    {{ rendered_field }}
     
     {% if help_text %}
     <small class="form-help">{{ help_text }}</small>
