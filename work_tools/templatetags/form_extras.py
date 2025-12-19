@@ -1,6 +1,33 @@
 from django import template
+from django.forms import BoundField
 
 register = template.Library()
 
-# 这是一个空的模板标签库文件
-# 如果需要添加自定义模板标签或过滤器，可以在这里定义
+
+@register.filter(name='add_class')
+def add_class(field, css_class):
+    """
+    为表单字段添加CSS类
+    
+    用法:
+    {{ form.field_name|add_class:"form-input" }}
+    """
+    if hasattr(field, 'as_widget'):
+        return field.as_widget(attrs={'class': css_class})
+    return field
+
+
+@register.inclusion_tag('tags/render_field.html')
+def render_field(field, input_class='', label_class='', help_text=''):
+    """
+    渲染表单字段的自定义标签
+    
+    用法:
+    {% render_field form.field_name input_class="form-input" label_class="form-label" %}
+    """
+    return {
+        'field': field,
+        'input_class': input_class,
+        'label_class': label_class,
+        'help_text': help_text or (field.help_text if hasattr(field, 'help_text') else ''),
+    }
