@@ -85,6 +85,7 @@ def configurable_table_add(request):
         table_name = request.POST.get('table_name', '').strip()
         display_name = request.POST.get('display_name', '').strip()
         description = request.POST.get('description', '').strip()
+        db_config_ids = request.POST.getlist('db_configs')  # 获取选中的数据库配置
         
         # 验证输入
         if not table_name or not display_name:
@@ -102,6 +103,16 @@ def configurable_table_add(request):
             is_active=True,
             sort_order=0
         )
+        
+        # 关联数据库配置
+        if db_config_ids:
+            from ..models import DatabaseConfig
+            for db_id in db_config_ids:
+                try:
+                    db_config = DatabaseConfig.objects.get(id=db_id)
+                    table.database_configs.add(db_config)
+                except DatabaseConfig.DoesNotExist:
+                    logger.warning(f"[配置管理] 数据库配置不存在: {db_id}")
         
         # 清除缓存
         _clear_configurable_cache()
@@ -175,6 +186,29 @@ def configurable_table_toggle(request):
     except Exception as e:
         logger.error(f"[配置管理] 切换表配置状态失败: {e}")
         return redirect(f'/configurable-config/?error=操作失败: {str(e)}')
+
+
+@require_POST
+def configurable_table_delete(request):
+    """删除表配置"""
+    try:
+        table_id = request.POST.get('table_id')
+        table = get_object_or_404(ConfigurableTable, id=table_id)
+        table_code = table.table_code
+        table_name = table.display_name
+        
+        # 删除表配置（会级联删除关联的字段配置）
+        table.delete()
+        
+        # 清除缓存
+        _clear_configurable_cache(table_code)
+        
+        logger.info(f"[配置管理] 删除表配置成功: {table_code} ({table_name})")
+        return redirect('/configurable-config/?message=删除表配置成功')
+        
+    except Exception as e:
+        logger.error(f"[配置管理] 删除表配置失败: {e}")
+        return redirect(f'/configurable-config/?table_id={table_id}&error=删除失败: {str(e)}')
 
 
 @require_POST
@@ -380,6 +414,7 @@ __all__ = [
     'configurable_table_add',
     'configurable_table_edit',
     'configurable_table_toggle',
+    'configurable_table_delete',
     'configurable_field_add',
     'configurable_field_edit',
     'configurable_field_delete',

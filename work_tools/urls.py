@@ -129,6 +129,7 @@ urlpatterns = [
     path('configurable-config/table/add/', view.configurable_table_add, name='configurable_table_add'),
     path('configurable-config/table/edit/', view.configurable_table_edit, name='configurable_table_edit'),
     path('configurable-config/table/toggle/', view.configurable_table_toggle, name='configurable_table_toggle'),
+    path('configurable-config/table/delete/', view.configurable_table_delete, name='configurable_table_delete'),
     path('configurable-config/field/add/', view.configurable_field_add, name='configurable_field_add'),
     path('configurable-config/field/edit/', view.configurable_field_edit, name='configurable_field_edit'),
     path('configurable-config/field/delete/', view.configurable_field_delete, name='configurable_field_delete'),

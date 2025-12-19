@@ -211,6 +211,7 @@
                   {% if selected_table.is_active %}禁用表{% else %}启用表{% endif %}
                 </button>
               </form>
+              <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTable({{ selected_table.id }}, '{{ selected_table.display_name }}')">删除表</button>
             </div>
           </div>
 
@@ -365,6 +366,31 @@
 
               <label for="description">功能描述</label>
               <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px;">
+                <label style="margin: 0;">启用的数据库配置</label>
+                <button type="button" class="btn btn-sm btn-success" onclick="showAddDbConfigModal()">+ 快速添加数据库</button>
+              </div>
+              <div style="padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; max-height: 200px; overflow-y: auto" id="addDbConfigList">
+                {% if all_db_configs %}
+                  {% for db_config in all_db_configs %}
+                  <div style="margin-bottom: 8px">
+                    <input 
+                      type="checkbox" 
+                      id="add_db_{{ db_config.id }}" 
+                      name="db_configs" 
+                      value="{{ db_config.id }}"
+                    />
+                    <label for="add_db_{{ db_config.id }}" style="margin: 0; font-weight: normal">
+                      {{ db_config.config_name }} ({{ db_config.db_host }} - {{ db_config.db_name }})
+                    </label>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <small class="text-muted">暂无可用的数据库配置，点击上方按钮快速添加</small>
+                {% endif %}
+              </div>
+              <small class="text-muted">选择该表生成SQL时需要包含的数据库</small>
               
               <small class="text-muted" style="margin-top: 10px; display: block">注:表编码由系统自动生成,无需手动输入</small>
             </div>
@@ -709,6 +735,29 @@
 
           form.appendChild(csrfInput);
           form.appendChild(fieldInput);
+          document.body.appendChild(form);
+          form.submit();
+        }
+      }
+
+      function deleteTable(id, name) {
+        if (confirm('确定要删除表配置 "' + name + '" 吗？\n\n删除后将同时删除该表的所有字段配置，此操作不可恢复！')) {
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '/configurable-config/table/delete/';
+
+          var csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'csrfmiddlewaretoken';
+          csrfInput.value = '{{ csrf_token }}';
+
+          var tableInput = document.createElement('input');
+          tableInput.type = 'hidden';
+          tableInput.name = 'table_id';
+          tableInput.value = id;
+
+          form.appendChild(csrfInput);
+          form.appendChild(tableInput);
           document.body.appendChild(form);
           form.submit();
         }
