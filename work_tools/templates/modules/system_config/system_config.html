@@ -459,21 +459,24 @@
         }
         
         if (btnCheckAll) {
-          btnCheckAll.addEventListener("click", function () {
+          btnCheckAll.addEventListener("click", function (e) {
+            e.preventDefault(); // 防止表单提交
             setAll(true);
           });
         }
         
         if (btnUncheckAll) {
-          btnUncheckAll.addEventListener("click", function () {
+          btnUncheckAll.addEventListener("click", function (e) {
+            e.preventDefault(); // 防止表单提交
             setAll(false);
           });
         }
         
-        // 分组按钮
-        var groupToggles = document.querySelectorAll("[data-group]");
+        // 分组按钮 - 只选择按钮元素，不包括复选框
+        var groupToggles = document.querySelectorAll("button[data-group][data-action]");
         groupToggles.forEach(function (btn) {
-          btn.addEventListener("click", function () {
+          btn.addEventListener("click", function (e) {
+            e.preventDefault(); // 防止表单提交
             var group = btn.getAttribute("data-group");
             var action = btn.getAttribute("data-action");
             var items = document.querySelectorAll('input.module-checkbox[type="checkbox"][data-group="' + group + '"]');
