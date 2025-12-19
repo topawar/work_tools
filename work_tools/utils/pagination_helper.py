@@ -15,12 +15,25 @@ def paginate_queryset(queryset, page, per_page=10):
     Returns:
         Page 对象，包含当前页的数据和分页信息
     """
+    # 确保页码是有效的整数，默认为1
+    if page is None or page == '' or page == 0:
+        page = 1
+    
+    try:
+        page = int(page)
+        # 确保页码至少为1
+        if page < 1:
+            page = 1
+    except (ValueError, TypeError, AttributeError):
+        page = 1
+    
     paginator = Paginator(queryset, per_page)
     
     try:
+        # get_page 方法会自动处理越界情况，但我们还是加个保护
         page_obj = paginator.get_page(page)
-    except (EmptyPage, PageNotAnInteger):
-        # 如果页码无效，返回第一页
+    except Exception:
+        # 如果还是出错，返回第一页
         page_obj = paginator.get_page(1)
     
     return page_obj

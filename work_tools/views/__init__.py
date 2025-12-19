@@ -2,40 +2,18 @@
 Views模块 - 将庞大的view.py拆分为多个功能模块
 """
 from .base import *
-from .contract_price import *
-from .contract_item import *
-from .contract_budget import *
-from .contract_unit import *
-from .use_list import *
-from .enddate import *
-from .importance import *
-from .erp_terminate import *
-from .price_type import *
-from .gov_report import *
-from .item_manage import *
-from .org_api import *
-from .user_org_manage import *
-from .job_manage import *
+# Contract 模块已迁移到 work_tools.modules.contract
+from work_tools.modules.contract import *
+# Procurement 模块已迁移到 work_tools.modules.procurement
+from work_tools.modules.procurement import *
+# Data Import 模块已迁移到 work_tools.modules.data_import
+from work_tools.modules.data_import import *
+# Job Management 模块已迁移到 work_tools.modules.job_management
+from work_tools.modules.job_management import *
 # 系统配置模块已迁移到 work_tools.modules.system_config
-from work_tools.modules.system_config.views import (
-    system_config_view,
-    file_path_config_view,
-    cleanup_config_view,
-    select_folder_api,
-    cleanup_now_view,
-    download_sql
-)
-from .appr_state import *
-from .contract_terminate import *
-from .sourcing_terminate import *
-from .project_round import *
-from .plan_date import *
-from .order_executor import *
-from .contract_creator import *
-from .dropdown_config import *
-from .configurable_config import *
-from .configurable_data import *
-from .database_config import *
+from work_tools.modules.system_config import *
+# Configurable 模块已迁移到 work_tools.modules.configurable
+from work_tools.modules.configurable import *
 
 __all__ = [
     # 基础工具函数
@@ -164,6 +142,7 @@ __all__ = [
     'configurable_table_add',
     'configurable_table_edit',
     'configurable_table_toggle',
+    'configurable_table_delete',
     'configurable_field_add',
     'configurable_field_edit',
     'configurable_field_delete',

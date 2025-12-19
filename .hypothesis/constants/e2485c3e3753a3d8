@@ -1,4 +1,0 @@
-# file: D:\Project\pyProject\work_tools\work_tools\configuration_manager.py
-# hypothesis_version: 6.148.7
-
-[1024, 8000, 65535, '..', '1.0.0', '127.0.0.1', 'AppConfig', 'DATABASES', 'DIRS', 'Django设置更新成功', 'NAME', 'STATIC_ROOT', 'TEMPLATES', 'Work Tools', 'db.sqlite3', 'default', 'localhost', 'logs', 'r', 'static', 'temp_files', 'templates', 'utf-8', 'w', '从JSON文件加载配置成功', '从数据库加载配置成功', '使用默认配置', '导入的配置无效', '应用名称不能为空', '配置保存成功']
