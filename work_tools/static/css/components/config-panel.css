@@ -1,0 +1,205 @@
+/**
+ * Config Panel Component
+ * 配置面板组件样式 - 使用BEM命名规范
+ */
+
+/* ==================== 配置面板基础样式 ==================== */
+.config-panel {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: var(--spacing-6);
+  transition: box-shadow var(--transition-normal);
+}
+
+.config-panel:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ==================== 配置面板头部 ==================== */
+.config-panel__header {
+  padding: var(--spacing-6);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+}
+
+.config-panel__header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.config-panel__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.config-panel__title-icon {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+}
+
+.config-panel__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: var(--spacing-1) 0 0 0;
+  line-height: var(--line-height-normal);
+}
+
+.config-panel__actions {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+}
+
+/* ==================== 配置面板内容区域 ==================== */
+.config-panel__body {
+  padding: var(--spacing-6);
+}
+
+.config-panel__body--no-padding {
+  padding: 0;
+}
+
+.config-panel__section {
+  margin-bottom: var(--spacing-8);
+}
+
+.config-panel__section:last-child {
+  margin-bottom: 0;
+}
+
+.config-panel__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 2px solid var(--color-border-primary);
+}
+
+.config-panel__section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.config-panel__section-icon {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+}
+
+.config-panel__section-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
+  margin-left: var(--spacing-2);
+}
+
+.config-panel__section-controls {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* ==================== 配置面板底部 ==================== */
+.config-panel__footer {
+  padding: var(--spacing-6);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.config-panel__footer--center {
+  justify-content: center;
+}
+
+.config-panel__footer--end {
+  justify-content: flex-end;
+}
+
+.config-panel__quick-actions {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.config-panel__primary-action {
+  margin-left: auto;
+}
+
+/* ==================== 配置面板变体 ==================== */
+.config-panel--large {
+  max-width: 1400px;
+  margin: 0 auto var(--spacing-6) auto;
+}
+
+.config-panel--compact .config-panel__header,
+.config-panel--compact .config-panel__body,
+.config-panel--compact .config-panel__footer {
+  padding: var(--spacing-4);
+}
+
+.config-panel--borderless {
+  border: none;
+  box-shadow: none;
+}
+
+.config-panel--elevated {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (max-width: 768px) {
+  .config-panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+  }
+  
+  .config-panel__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .config-panel__section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+  }
+  
+  .config-panel__section-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .config-panel__footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-3);
+  }
+  
+  .config-panel__quick-actions {
+    justify-content: center;
+  }
+  
+  .config-panel__primary-action {
+    margin-left: 0;
+  }
+}

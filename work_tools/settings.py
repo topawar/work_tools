@@ -12,22 +12,55 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import logging.handlers
 import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 检测是否在打包环境中运行
+def is_packaged():
+    """检测是否在PyInstaller打包环境中运行"""
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+# 获取运行时基础目录（支持打包后的exe和源码运行）
+def get_runtime_base_dir():
+    """获取运行时基础目录，支持打包和开发环境"""
+    if is_packaged():
+        # 打包环境：使用可执行文件所在目录
+        return Path(sys.executable).parent
+    else:
+        # 开发环境：使用项目根目录
+        return BASE_DIR
+
+# 运行时基础目录
+RUNTIME_BASE_DIR = get_runtime_base_dir()
+
+# 打包环境配置管理
+PACKAGED_CONFIG = {
+    'is_packaged': is_packaged(),
+    'runtime_base': RUNTIME_BASE_DIR,
+    'executable_path': sys.executable if is_packaged() else None,
+    'bundle_dir': getattr(sys, '_MEIPASS', None)
+}
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# 默认密钥，可通过配置管理器覆盖
 SECRET_KEY = "django-insecure-hojut)v+nufl=fjd!bt+#bn8g@0i504big-v#9=!(em!7jmq@%"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 打包环境默认关闭调试模式
+DEBUG = not is_packaged()
 
-ALLOWED_HOSTS = ['*']  # 允许所有主机（仅开发环境）
+# 允许的主机列表，打包环境更严格
+if is_packaged():
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+else:
+    ALLOWED_HOSTS = ['*']  # 开发环境允许所有主机
 
 
 # Application definition
@@ -44,6 +77,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # 静态文件服务中间件（必须在SecurityMiddleware之后）
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -55,10 +89,18 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "work_tools.urls"
 
+# 模板配置 - 支持打包环境
+if is_packaged():
+    # 打包环境：模板在_internal目录中
+    TEMPLATES_DIR = RUNTIME_BASE_DIR / '_internal' / 'templates'
+else:
+    # 开发环境：模板在项目根目录
+    TEMPLATES_DIR = RUNTIME_BASE_DIR / 'templates'
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [TEMPLATES_DIR] if TEMPLATES_DIR.exists() else [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -75,12 +117,26 @@ WSGI_APPLICATION = "work_tools.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# 数据库配置 - 支持打包环境的相对路径
+
+# 优先使用环境变量中的数据库路径
+DATABASE_PATH = os.environ.get('WORK_TOOLS_DB_PATH')
+if DATABASE_PATH:
+    DATABASE_PATH = Path(DATABASE_PATH)
+elif is_packaged():
+    # 打包环境：数据库在_internal目录中
+    DATABASE_PATH = RUNTIME_BASE_DIR / "_internal" / "db.sqlite3"
+else:
+    # 开发环境：数据库在项目根目录
+    DATABASE_PATH = RUNTIME_BASE_DIR / "db.sqlite3"
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        "OPTIONS": {"timeout": 30},
+        "NAME": DATABASE_PATH,
+        "OPTIONS": {
+            "timeout": 30,
+        },
     }
 }
 
@@ -118,28 +174,71 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+# 静态文件配置 - 支持打包环境
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+
+# 优先使用环境变量中的静态文件路径
+_static_root_env = os.environ.get('WORK_TOOLS_STATIC_ROOT')
+if _static_root_env:
+    STATIC_ROOT = Path(_static_root_env)
+elif is_packaged():
+    STATIC_ROOT = RUNTIME_BASE_DIR / "_internal" / "static"
+else:
+    STATIC_ROOT = RUNTIME_BASE_DIR / "static"
+
+# 静态文件查找目录
+STATICFILES_DIRS = []
+
+if is_packaged():
+    # 打包环境：添加打包后的静态文件目录
+    # 注意：STATICFILES_DIRS 不能包含 STATIC_ROOT，否则会报错
+    internal_dir = RUNTIME_BASE_DIR / "_internal"
+    packaged_static_dirs = [
+        internal_dir / "work_tools" / "static",  # 应用级静态文件
+    ]
+    
+    # 添加Django admin静态文件目录
+    django_admin_static = internal_dir / "django_admin_static"
+    if django_admin_static.exists():
+        packaged_static_dirs.append(django_admin_static)
+    
+    # 添加Django staticfiles静态文件目录
+    django_staticfiles_static = internal_dir / "django_staticfiles_static"
+    if django_staticfiles_static.exists():
+        packaged_static_dirs.append(django_staticfiles_static)
+    
+    # 过滤存在的目录，并排除 STATIC_ROOT
+    STATICFILES_DIRS = [str(d) for d in packaged_static_dirs 
+                        if d.exists() and d.resolve() != STATIC_ROOT.resolve()]
+else:
+    # 开发环境：添加应用内的静态文件目录
+    app_static_dir = BASE_DIR / "work_tools" / "static"
+    if app_static_dir.exists():
+        STATICFILES_DIRS.append(str(app_static_dir))
+
+# 静态文件查找器
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+# 静态文件存储配置
+# 使用Django默认存储，whitenoise中间件会自动处理静态文件服务
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# whitenoise配置
+WHITENOISE_USE_FINDERS = True  # 允许whitenoise使用finders查找静态文件
+WHITENOISE_AUTOREFRESH = not is_packaged()  # 开发环境自动刷新，打包环境不刷新
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# 简化的日志配置 - 直接写入文件,避免复杂配置导致的问题
-import sys
-
-# 获取运行时基础目录（支持打包后的exe和源码运行）
-def get_runtime_base():
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return BASE_DIR
-
-RUNTIME_BASE_DIR = get_runtime_base()
-
-# 创建日志目录
-LOG_DIR = os.path.join(RUNTIME_BASE_DIR, 'logs')
-os.makedirs(LOG_DIR, exist_ok=True)
+# 日志配置 - 支持打包环境
+LOG_DIR = RUNTIME_BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
 
 # 完全禁用Django默认日志配置,使用自定义简单配置
 LOGGING_CONFIG = None
@@ -148,87 +247,127 @@ LOGGING_CONFIG = None
 
 
 def setup_logging():
-    """手动设置日志系统,确保日志能够正常写入"""
+    """手动设置日志系统，确保日志能够正常写入，支持打包环境"""
     # 创建格式化器
     formatter = logging.Formatter(
         '[%(asctime)s] %(levelname)s [%(name)s:%(funcName)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    # 请求日志
-    request_handler = logging.handlers.RotatingFileHandler(
-        os.path.join(LOG_DIR, 'requests.log'),
-        maxBytes=10*1024*1024,
-        backupCount=10,
-        encoding='utf-8'
-    )
-    request_handler.setFormatter(formatter)
-    request_handler.setLevel(logging.INFO)
+    # 日志文件配置
+    log_files = {
+        'app.request': 'requests.log',
+        'app.sql': 'sql.log',
+        'app.view': 'views.log',
+        'app.error': 'errors.log',
+        'app.launcher': 'launcher.log',  # 启动器日志
+        'app.packaging': 'packaging.log'  # 打包相关日志
+    }
 
-    request_logger = logging.getLogger('app.request')
-    request_logger.setLevel(logging.INFO)
-    request_logger.addHandler(request_handler)
-    request_logger.addHandler(logging.StreamHandler())
+    # 为每个日志类别创建处理器
+    for logger_name, log_file in log_files.items():
+        # 文件处理器
+        file_handler = logging.handlers.RotatingFileHandler(
+            LOG_DIR / log_file,
+            maxBytes=10*1024*1024,
+            backupCount=10,
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+        
+        # 设置日志级别
+        if 'error' in logger_name:
+            file_handler.setLevel(logging.ERROR)
+            logger_level = logging.ERROR
+        else:
+            file_handler.setLevel(logging.INFO)
+            logger_level = logging.INFO
 
-    # SQL生成日志
-    sql_handler = logging.handlers.RotatingFileHandler(
-        os.path.join(LOG_DIR, 'sql.log'),
-        maxBytes=10*1024*1024,
-        backupCount=10,
-        encoding='utf-8'
-    )
-    sql_handler.setFormatter(formatter)
-    sql_handler.setLevel(logging.INFO)
-
-    sql_logger = logging.getLogger('app.sql')
-    sql_logger.setLevel(logging.INFO)
-    sql_logger.addHandler(sql_handler)
-    sql_logger.addHandler(logging.StreamHandler())
-
-    # 视图日志
-    view_handler = logging.handlers.RotatingFileHandler(
-        os.path.join(LOG_DIR, 'views.log'),
-        maxBytes=10*1024*1024,
-        backupCount=10,
-        encoding='utf-8'
-    )
-    view_handler.setFormatter(formatter)
-    view_handler.setLevel(logging.INFO)
-
-    view_logger = logging.getLogger('app.view')
-    view_logger.setLevel(logging.INFO)
-    view_logger.addHandler(view_handler)
-    view_logger.addHandler(logging.StreamHandler())
-
-    # 错误日志
-    error_handler = logging.handlers.RotatingFileHandler(
-        os.path.join(LOG_DIR, 'errors.log'),
-        maxBytes=10*1024*1024,
-        backupCount=10,
-        encoding='utf-8'
-    )
-    error_handler.setFormatter(formatter)
-    error_handler.setLevel(logging.ERROR)
-
-    error_logger = logging.getLogger('app.error')
-    error_logger.setLevel(logging.ERROR)
-    error_logger.addHandler(error_handler)
-    error_logger.addHandler(logging.StreamHandler())
+        # 创建日志器
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logger_level)
+        logger.addHandler(file_handler)
+        
+        # 开发环境添加控制台输出，打包环境不添加（避免控制台窗口）
+        if not is_packaged():
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            console_handler.setLevel(logger_level)
+            logger.addHandler(console_handler)
 
     # 写入启动日志验证
-    request_logger.info('='*80)
-    request_logger.info('日志系统初始化成功 - 请求日志')
-    request_logger.info(f'日志目录: {LOG_DIR}')
-    request_logger.info('='*80)
+    startup_logger = logging.getLogger('app.launcher')
+    startup_logger.info('='*80)
+    startup_logger.info(f'日志系统初始化成功 - 运行环境: {"打包环境" if is_packaged() else "开发环境"}')
+    startup_logger.info(f'运行时基础目录: {RUNTIME_BASE_DIR}')
+    startup_logger.info(f'日志目录: {LOG_DIR}')
+    startup_logger.info(f'数据库路径: {DATABASE_PATH}')
+    startup_logger.info(f'静态文件根目录: {STATIC_ROOT}')
+    if is_packaged():
+        startup_logger.info(f'可执行文件路径: {PACKAGED_CONFIG["executable_path"]}')
+        startup_logger.info(f'临时解包目录: {PACKAGED_CONFIG["bundle_dir"]}')
+    startup_logger.info('='*80)
 
-    sql_logger.info('='*80)
-    sql_logger.info('日志系统初始化成功 - SQL日志')
-    sql_logger.info('='*80)
 
-    view_logger.info('='*80)
-    view_logger.info('日志系统初始化成功 - 视图日志')
-    view_logger.info('='*80)
+# 配置管理器集成
+def update_settings_from_config_manager():
+    """从配置管理器更新Django设置"""
+    try:
+        # 尝试导入配置管理器
+        from .configuration_manager import ConfigurationManager
+        
+        # 配置文件路径
+        config_path = RUNTIME_BASE_DIR / "app_config.json"
+        db_config_path = RUNTIME_BASE_DIR / "config.sqlite3"
+        
+        if config_path.exists() or db_config_path.exists():
+            config_manager = ConfigurationManager(str(config_path), str(db_config_path))
+            config = config_manager.load_config()
+            
+            # 更新设置
+            global SECRET_KEY, DEBUG, ALLOWED_HOSTS, DATABASE_PATH, STATIC_ROOT
+            
+            SECRET_KEY = config.secret_key
+            DEBUG = config.debug
+            ALLOWED_HOSTS = config.allowed_hosts
+            
+            # 更新数据库路径
+            DATABASE_PATH = RUNTIME_BASE_DIR / config.database_path
+            DATABASES['default']['NAME'] = DATABASE_PATH
+            
+            # 更新静态文件路径
+            STATIC_ROOT = RUNTIME_BASE_DIR / config.static_root
+            
+            # 更新模板路径
+            TEMPLATES_DIR = RUNTIME_BASE_DIR / config.templates_root
+            TEMPLATES[0]['DIRS'] = [TEMPLATES_DIR] if TEMPLATES_DIR.exists() else []
+            
+            # 记录配置更新
+            config_logger = logging.getLogger('app.launcher')
+            config_logger.info('从配置管理器更新Django设置成功')
+            
+    except ImportError:
+        # 配置管理器还未实现，使用默认设置
+        pass
+    except Exception as e:
+        error_logger = logging.getLogger('app.error')
+        error_logger.error(f'从配置管理器更新设置失败: {e}')
 
+
+# 临时文件和上传目录配置
+TEMP_FILES_DIR = RUNTIME_BASE_DIR / 'temp_files'
+TEMP_FILES_DIR.mkdir(exist_ok=True)
+
+TEMP_UPLOADS_DIR = RUNTIME_BASE_DIR / 'temp_uploads'
+TEMP_UPLOADS_DIR.mkdir(exist_ok=True)
+
+# 媒体文件配置（如果需要）
+MEDIA_URL = '/media/'
+MEDIA_ROOT = RUNTIME_BASE_DIR / 'media'
+MEDIA_ROOT.mkdir(exist_ok=True)
 
 # 立即初始化日志
 setup_logging()
+
+# 尝试从配置管理器更新设置
+update_settings_from_config_manager()

@@ -1,13 +1,14 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>终止合同</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{% static 'vendor/css/bootstrap.min.css' %}" rel="stylesheet" />
     <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link href="{% static 'vendor/css/select2.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'vendor/css/select2-bootstrap-5-theme.min.css' %}" rel="stylesheet" />
     <style>
       body {
         background-color: #f8f9fa;
@@ -192,13 +193,14 @@
             ⬇ 下载失败文件查看详细错误信息
           </a>
         </div>
+
       </div>
       {% endif %}
     </div>
 
     <!-- jQuery & Select2 JS -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{% static 'vendor/js/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static 'vendor/js/select2.min.js' %}"></script>
     <script>
       $(document).ready(function () {
         // 初始化Select2下拉框，支持搜索

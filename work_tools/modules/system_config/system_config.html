@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL合并策略配置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 15px;
+      }
+      .config-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      .page-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #e9ecef;
+      }
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+      .page-desc {
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
+      }
+      .stats-bar {
+        display: flex;
+        gap: 20px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+      }
+      .stat-item {
+        flex: 1;
+        text-align: center;
+        color: white;
+      }
+      .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-bottom: 4px;
+      }
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .module-group {
+        margin-bottom: 30px;
+        padding: 24px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+      }
+      .group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e5e7eb;
+      }
+      .group-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+      }
+      .group-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        color: white;
+        font-size: 16px;
+      }
+      .group-controls {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-group-control {
+        padding: 6px 12px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-group-control:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+      }
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      .module-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .module-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .module-item.checked {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+      .module-checkbox {
+        width: 20px;
+        height: 20px;
+        margin-right: 12px;
+        cursor: pointer;
+        accent-color: #667eea;
+      }
+      .module-label {
+        flex: 1;
+        font-size: 14px;
+        color: #374151;
+        cursor: pointer;
+        user-select: none;
+      }
+      .module-item.checked .module-label {
+        color: #1f2937;
+        font-weight: 500;
+      }
+      .action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 30px;
+        padding-top: 24px;
+        border-top: 2px solid #e9ecef;
+      }
+      .quick-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .btn-quick {
+        padding: 8px 16px;
+        font-size: 14px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-quick:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+      }
+      .btn-save {
+        padding: 10px 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+      .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+      }
+      .save-notice {
+        position: fixed;
+        right: 24px;
+        top: 24px;
+        z-index: 9999;
+        padding: 14px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transition: opacity 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .save-success {
+        background: #10b981;
+        color: white;
+      }
+      .save-error {
+        background: #ef4444;
+        color: white;
+      }
+      @media (max-width: 768px) {
+        .module-grid {
+          grid-template-columns: 1fr;
+        }
+        .stats-bar {
+          flex-direction: column;
+          gap: 12px;
+        }
+        .action-bar {
+          flex-direction: column;
+          gap: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% include 'sidebar.html' %}
+    
+    {% if saved %}
+    <div id="saveSuccess" class="save-notice save-success">
+      <i class="bi bi-check-circle-fill"></i>
+      配置保存成功！
+    </div>
+    {% endif %}
+    {% if error %}
+    <div id="saveError" class="save-notice save-error">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="config-container">
+      <!-- 页面头部 -->
+      <div class="page-header">
+        <h1 class="page-title">
+          <i class="bi bi-gear-fill" style="color: #667eea; margin-right: 8px;"></i>
+          SQL合并策略配置
+        </h1>
+        <p class="page-desc">
+          启用SQL合并后，系统将自动合并相同操作的SQL语句，减少语句数量，提升执行效率
+        </p>
+      </div>
+
+      <form method="post" id="configForm">
+        {% csrf_token %}
+        
+        <!-- 统计数据 -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <div class="stat-label">总模块数</div>
+            <div class="stat-value" id="totalCount">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">已启用</div>
+            <div class="stat-value" id="enabledCount">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">未启用</div>
+            <div class="stat-value" id="disabledCount">0</div>
+          </div>
+        </div>
+
+        <!-- 合同模块组 -->
+        <div class="module-group">
+          <div class="group-header">
+            <div class="group-title">
+              <div class="group-icon">
+                <i class="bi bi-file-earmark-text"></i>
+              </div>
+              <span>合同模块</span>
+              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(8个功能)</span>
+            </div>
+            <div class="group-controls">
+              <button type="button" class="btn-group-control" data-group="contract" data-action="check">
+                <i class="bi bi-check-all"></i> 全选
+              </button>
+              <button type="button" class="btn-group-control" data-group="contract" data-action="uncheck">
+                <i class="bi bi-x-lg"></i> 清空
+              </button>
+            </div>
+          </div>
+          <div class="module-grid">
+            <label class="module-item" data-module="mod_price">
+              <input class="module-checkbox" type="checkbox" name="mod_price" id="mod_price" data-group="contract" {% if cfg.MERGE_MODULES.price %}checked{% endif %} />
+              <span class="module-label">明细单价修改</span>
+            </label>
+            <label class="module-item" data-module="mod_item">
+              <input class="module-checkbox" type="checkbox" name="mod_item" id="mod_item" data-group="contract" {% if cfg.MERGE_MODULES.item %}checked{% endif %} />
+              <span class="module-label">物资编码修改</span>
+            </label>
+            <label class="module-item" data-module="mod_use_list">
+              <input class="module-checkbox" type="checkbox" name="mod_use_list" id="mod_use_list" data-group="contract" {% if cfg.MERGE_MODULES.use_list %}checked{% endif %} />
+              <span class="module-label">适用清单修改</span>
+            </label>
+            <label class="module-item" data-module="mod_budget">
+              <input class="module-checkbox" type="checkbox" name="mod_budget" id="mod_budget" data-group="contract" {% if cfg.MERGE_MODULES.budget %}checked{% endif %} />
+              <span class="module-label">合同预算修改</span>
+            </label>
+            <label class="module-item" data-module="mod_enddate">
+              <input class="module-checkbox" type="checkbox" name="mod_enddate" id="mod_enddate" data-group="contract" {% if cfg.MERGE_MODULES.enddate %}checked{% endif %} />
+              <span class="module-label">合同失效日期修改</span>
+            </label>
+            <label class="module-item" data-module="mod_appr_state">
+              <input class="module-checkbox" type="checkbox" name="mod_appr_state" id="mod_appr_state" data-group="contract" {% if cfg.MERGE_MODULES.appr_state %}checked{% endif %} />
+              <span class="module-label">合同状态修改</span>
+            </label>
+            <label class="module-item" data-module="mod_contract_terminate">
+              <input class="module-checkbox" type="checkbox" name="mod_contract_terminate" id="mod_contract_terminate" data-group="contract" {% if cfg.MERGE_MODULES.contract_terminate %}checked{% endif %} />
+              <span class="module-label">终止合同</span>
+            </label>
+            <label class="module-item" data-module="mod_sourcing_terminate">
+              <input class="module-checkbox" type="checkbox" name="mod_sourcing_terminate" id="mod_sourcing_terminate" data-group="contract" {% if cfg.MERGE_MODULES.sourcing_terminate %}checked{% endif %} />
+              <span class="module-label">终止简化寻源合同</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 计划-寻源模块组 -->
+        <div class="module-group">
+          <div class="group-header">
+            <div class="group-title">
+              <div class="group-icon">
+                <i class="bi bi-diagram-3"></i>
+              </div>
+              <span>计划-寻源模块</span>
+              <span style="color: #9ca3af; font-size: 13px; font-weight: 400;">(6个功能)</span>
+            </div>
+            <div class="group-controls">
+              <button type="button" class="btn-group-control" data-group="sourcing" data-action="check">
+                <i class="bi bi-check-all"></i> 全选
+              </button>
+              <button type="button" class="btn-group-control" data-group="sourcing" data-action="uncheck">
+                <i class="bi bi-x-lg"></i> 清空
+              </button>
+            </div>
+          </div>
+          <div class="module-grid">
+            <label class="module-item" data-module="mod_unit">
+              <input class="module-checkbox" type="checkbox" name="mod_unit" id="mod_unit" data-group="sourcing" {% if cfg.MERGE_MODULES.unit %}checked{% endif %} />
+              <span class="module-label">合同起草、签约单位修改</span>
+            </label>
+            <label class="module-item" data-module="mod_gov">
+              <input class="module-checkbox" type="checkbox" name="mod_gov" id="mod_gov" data-group="sourcing" {% if cfg.MERGE_MODULES.gov %}checked{% endif %} />
+              <span class="module-label">是否报送国资委</span>
+            </label>
+            <label class="module-item" data-module="mod_importance">
+              <input class="module-checkbox" type="checkbox" name="mod_importance" id="mod_importance" data-group="sourcing" {% if cfg.MERGE_MODULES.importance %}checked{% endif %} />
+              <span class="module-label">物项重要性修改</span>
+            </label>
+            <label class="module-item" data-module="mod_price_type">
+              <input class="module-checkbox" type="checkbox" name="mod_price_type" id="mod_price_type" data-group="sourcing" {% if cfg.MERGE_MODULES.price_type %}checked{% endif %} />
+              <span class="module-label">浮动单价类型修改</span>
+            </label>
+            <label class="module-item" data-module="mod_erp">
+              <input class="module-checkbox" type="checkbox" name="mod_erp" id="mod_erp" data-group="sourcing" {% if cfg.MERGE_MODULES.erp %}checked{% endif %} />
+              <span class="module-label">核电ERP终止</span>
+            </label>
+            <label class="module-item" data-module="mod_project_round">
+              <input class="module-checkbox" type="checkbox" name="mod_project_round" id="mod_project_round" data-group="sourcing" {% if cfg.MERGE_MODULES.project_round %}checked{% endif %} />
+              <span class="module-label">项目轮次</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="action-bar">
+          <div class="quick-actions">
+            <button type="button" class="btn-quick" id="btnCheckAll">
+              <i class="bi bi-check-square"></i>
+              全部启用
+            </button>
+            <button type="button" class="btn-quick" id="btnUncheckAll">
+              <i class="bi bi-x-square"></i>
+              全部禁用
+            </button>
+          </div>
+          <button type="submit" class="btn-save">
+            <i class="bi bi-save" style="margin-right: 6px;"></i>
+            保存配置
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      (function () {
+        // 获取所有复选框
+        var allCheckboxes = document.querySelectorAll('input.module-checkbox[type="checkbox"][name^="mod_"]');
+        var btnCheckAll = document.getElementById("btnCheckAll");
+        var btnUncheckAll = document.getElementById("btnUncheckAll");
+        
+        // 更新统计数据
+        function updateStats() {
+          var total = allCheckboxes.length;
+          var enabled = 0;
+          allCheckboxes.forEach(function(cb) {
+            if (cb.checked) enabled++;
+          });
+          var disabled = total - enabled;
+          
+          document.getElementById('totalCount').textContent = total;
+          document.getElementById('enabledCount').textContent = enabled;
+          document.getElementById('disabledCount').textContent = disabled;
+        }
+        
+        // 更新模块项样式
+        function updateModuleItems() {
+          document.querySelectorAll('.module-item').forEach(function(item) {
+            var checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox && checkbox.checked) {
+              item.classList.add('checked');
+            } else {
+              item.classList.remove('checked');
+            }
+          });
+        }
+        
+        // 全选/全不选
+        function setAll(val) {
+          allCheckboxes.forEach(function (el) {
+            el.checked = val;
+          });
+          updateStats();
+          updateModuleItems();
+        }
+        
+        if (btnCheckAll) {
+          btnCheckAll.addEventListener("click", function () {
+            setAll(true);
+          });
+        }
+        
+        if (btnUncheckAll) {
+          btnUncheckAll.addEventListener("click", function () {
+            setAll(false);
+          });
+        }
+        
+        // 分组按钮
+        var groupToggles = document.querySelectorAll("[data-group]");
+        groupToggles.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var group = btn.getAttribute("data-group");
+            var action = btn.getAttribute("data-action");
+            var items = document.querySelectorAll('input.module-checkbox[type="checkbox"][data-group="' + group + '"]');
+            var val = action === "check";
+            items.forEach(function (el) {
+              el.checked = val;
+            });
+            updateStats();
+            updateModuleItems();
+          });
+        });
+        
+        // 监听复选框变化
+        allCheckboxes.forEach(function(cb) {
+          cb.addEventListener('change', function() {
+            updateStats();
+            updateModuleItems();
+          });
+        });
+        
+        // 点击模块项切换状态
+        document.querySelectorAll('.module-item').forEach(function(item) {
+          item.addEventListener('click', function(e) {
+            // 如果直接点击复选框，不处理
+            if (e.target.type === 'checkbox') return;
+            
+            var checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+              checkbox.checked = !checkbox.checked;
+              updateStats();
+              updateModuleItems();
+            }
+          });
+        });
+        
+        // 消息提示自动消失
+        function fadeOut(el) {
+          if (el) {
+            setTimeout(function () {
+              el.style.opacity = "0";
+              setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+              }, 300);
+            }, 3000);
+          }
+        }
+
+        fadeOut(document.getElementById("saveSuccess"));
+        fadeOut(document.getElementById("saveError"));
+        
+        // 初始化
+        updateStats();
+        updateModuleItems();
+      })();
+    </script>
+  </body>
+</html>

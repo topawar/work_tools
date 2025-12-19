@@ -16,7 +16,15 @@ from .item_manage import *
 from .org_api import *
 from .user_org_manage import *
 from .job_manage import *
-from .system_config import *
+# 系统配置模块已迁移到 work_tools.modules.system_config
+from work_tools.modules.system_config.views import (
+    system_config_view,
+    file_path_config_view,
+    cleanup_config_view,
+    select_folder_api,
+    cleanup_now_view,
+    download_sql
+)
 from .appr_state import *
 from .contract_terminate import *
 from .sourcing_terminate import *

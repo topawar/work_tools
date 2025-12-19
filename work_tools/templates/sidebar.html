@@ -1,4 +1,5 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+{% load static %}
+<link rel="stylesheet" href="{% static 'vendor/css/bootstrap-icons.min.css' %}" />
 <style>
   html,
   body {
@@ -7,6 +8,13 @@
   body {
     margin: 0;
     padding-left: 240px;
+    transition: padding-left 0.3s ease;
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding-left: 0;
+    }
   }
   .sidebar {
     position: fixed;
@@ -19,13 +27,80 @@
     padding: 16px 12px;
     overflow-y: auto;
     border-right: 1px solid #e5e7eb;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+    
+    .sidebar.mobile-open {
+      transform: translateX(0);
+    }
+    
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    .sidebar-overlay.show {
+      display: block;
+    }
   }
   .brand {
     font-weight: 700;
     font-size: 16px;
     margin-bottom: 12px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     color: #111827;
+  }
+  
+  .mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-menu-btn {
+      display: block;
+    }
+  }
+  
+  .mobile-toggle {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1001;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 18px;
+    color: #374151;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-toggle {
+      display: block;
+    }
   }
   .sidebar-group {
     margin-bottom: 8px;
@@ -198,8 +273,21 @@
     display: none;
   }
 </style>
-<aside class="sidebar">
-  <span class="brand">工作集</span>
+<!-- 移动端菜单按钮 -->
+<button class="mobile-toggle" id="mobileToggle">
+  <i class="bi bi-list"></i>
+</button>
+
+<!-- 移动端遮罩层 -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <span>工作集</span>
+    <button class="mobile-menu-btn" id="closeSidebar">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
 
   <!-- 搜索框 -->
   <div class="search-box">
@@ -480,6 +568,50 @@
     searchInput.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         clearSearch();
+      }
+    });
+
+    // ==================== 移动端侧边栏控制 ====================
+    var mobileToggle = document.getElementById('mobileToggle');
+    var closeSidebar = document.getElementById('closeSidebar');
+    var sidebar = document.getElementById('sidebar');
+    var sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function openSidebar() {
+      sidebar.classList.add('mobile-open');
+      sidebarOverlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebarFn() {
+      sidebar.classList.remove('mobile-open');
+      sidebarOverlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    if (mobileToggle) {
+      mobileToggle.addEventListener('click', openSidebar);
+    }
+
+    if (closeSidebar) {
+      closeSidebar.addEventListener('click', closeSidebarFn);
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', closeSidebarFn);
+    }
+
+    // 键盘事件
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+        closeSidebarFn();
+      }
+    });
+
+    // 窗口大小变化时自动关闭移动端侧边栏
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 768) {
+        closeSidebarFn();
       }
     });
   })();

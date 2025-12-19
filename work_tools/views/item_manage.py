@@ -86,12 +86,8 @@ def item_import_view(request):
                                 'purc_type': get_value(row, 'purc_type'),
                             })
                             if len(buffer) >= batch_size:
-                                ids = [b['item_id'] for b in buffer]
-                                uniq = {}
-                                for b in buffer:
-                                    uniq[b['item_id']] = b
-                                to_create = [ItemDetail(**v)
-                                             for v in uniq.values()]
+                                # 直接创建所有记录，不去重
+                                to_create = [ItemDetail(**b) for b in buffer]
                                 if to_create:
                                     with transaction.atomic():
                                         ItemDetail.objects.bulk_create(
@@ -104,12 +100,8 @@ def item_import_view(request):
                                            'done', 'updated_at'])
                                 buffer = []
                         if buffer:
-                            ids = [b['item_id'] for b in buffer]
-                            uniq = {}
-                            for b in buffer:
-                                uniq[b['item_id']] = b
-                            to_create = [ItemDetail(**v)
-                                         for v in uniq.values()]
+                            # 直接创建所有记录，不去重
+                            to_create = [ItemDetail(**b) for b in buffer]
                             if to_create:
                                 with transaction.atomic():
                                     ItemDetail.objects.bulk_create(to_create)

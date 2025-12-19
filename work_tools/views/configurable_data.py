@@ -535,6 +535,11 @@ def download_template(request, table_code):
 
 def configurable_data_view(request, table_code):
     """可配置数据修改视图"""
+    # 禁止访问validation路径
+    if table_code == 'validation':
+        from django.http import Http404
+        raise Http404("页面不存在")
+    
     table_config = get_table_config(table_code)
     if not table_config:
         return render(request, 'error.html', {

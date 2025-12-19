@@ -37,11 +37,43 @@ class StripWhitespaceMixin:
             if isinstance(v, str):
                 field = self.fields.get(k)
                 if field and isinstance(field.widget, forms.Textarea):
+                    # 对于文本域，只去除前后空格
                     cleaned_data[k] = v.strip()
                 else:
-                    cleaned_data[k] = v.strip().replace(
-                        "\r", "").replace("\n", "")
+                    # 对于普通输入框，去除所有空格（前后和中间）
+                    # 但保留某些字段的中间空格（如人名、公司名称等）
+                    if self._should_preserve_internal_spaces(k):
+                        # 保留中间空格的字段，只去除前后空格和换行符
+                        cleaned_data[k] = v.strip().replace("\r", "").replace("\n", "")
+                    else:
+                        # 去除所有空格的字段（如编号、ID等）
+                        cleaned_data[k] = v.strip().replace(" ", "").replace(
+                            "\r", "").replace("\n", "").replace("\t", "")
         return cleaned_data
+    
+    def _should_preserve_internal_spaces(self, field_name):
+        """判断字段是否应该保留中间空格"""
+        # 需要保留中间空格的字段（通常是名称类字段）
+        preserve_fields = [
+            'company_name', 'org_name', 'user_name', 'executor_name',
+            'creator_name', 'old_drafting_name', 'new_drafting_name',
+            'old_party_name', 'new_party_name', 'orig_order_executor_name',
+            'orig_creator_name', 'new_creator_name', 'item_name'
+        ]
+        
+        # 检查字段名是否包含这些关键词
+        field_lower = field_name.lower()
+        for preserve_field in preserve_fields:
+            if preserve_field in field_lower:
+                return True
+        
+        # 检查是否是名称相关字段
+        name_keywords = ['name', '名称', 'title', '标题', 'description', '描述', 'remark', '备注']
+        for keyword in name_keywords:
+            if keyword in field_lower:
+                return True
+        
+        return False
 
 
 class OrgImportForm(StripWhitespaceMixin, forms.Form):
@@ -1235,11 +1267,18 @@ class OrderExecutorUpdateForm(StripWhitespaceMixin, forms.Form):
             attrs={'class': 'form-control', 'placeholder': '如 1891855700607'})
     )
     
+    orig_order_executor_name = forms.CharField(
+        label="原订单执行人名称（用于回退）",
+        required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control', 'placeholder': '如 张三'})
+    )
+    
     # Excel批量导入
     excel_file = forms.FileField(
-        label="或上传Excel（列：采购包编号/订单号/订单执行人账号/原订单执行人账号）",
+        label="或上传Excel（列：采购包编号/订单号/订单执行人账号/原订单执行人账号/原订单执行人名称）",
         required=False,
-        help_text=".xlsx；采购包编号和订单号至少有一个；订单执行人账号为必填；原值用于生成回退语句",
+        help_text=".xlsx；采购包编号和订单号至少有一个；订单执行人账号为必填；原值用于生成回退语句，允许为空",
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
     
@@ -1257,7 +1296,6 @@ class OrderExecutorUpdateForm(StripWhitespaceMixin, forms.Form):
         # 验证单条记录
         if (purchase_package_no or order_id):
             order_executor = cleaned_data.get('order_executor')
-            orig_order_executor = cleaned_data.get('orig_order_executor')
             
             # 订单执行人账号必填
             if not order_executor:
@@ -1268,10 +1306,8 @@ class OrderExecutorUpdateForm(StripWhitespaceMixin, forms.Form):
             if not UserOrgDetail.objects.filter(login_name=order_executor).exists():
                 raise forms.ValidationError(f"订单执行人账号 {order_executor} 不存在，请检查后重试。")
             
-            # 验证原订单执行人账号（如果填写了）
-            if orig_order_executor:
-                if not UserOrgDetail.objects.filter(login_name=orig_order_executor).exists():
-                    raise forms.ValidationError(f"原订单执行人账号 {orig_order_executor} 不存在，请检查后重试。")
+            # 原订单执行人账号和名称允许为空，不进行强制验证
+            # 即使填写了也不验证有效性，因为可能是历史数据或其他特殊情况
         
         if not cleaned_data.get('ops_remark'):
             raise forms.ValidationError("操作备注为必填项。")

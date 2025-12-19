@@ -56,16 +56,8 @@ def validate_order_executor_records(records):
             if error:
                 errors.append(error)
         
-        # 如果有原订单执行人账号,也需要校验其存在
-        if record.get('orig_order_executor'):
-            error = validate_reference(
-                UserOrgDetail,
-                'login_name',
-                record.get('orig_order_executor'),
-                '原订单执行人账号'
-            )
-            if error:
-                errors.append(error)
+        # 原订单执行人账号和名称允许为空，允许查询不到（因为可能原本就是空）
+        # 不对原订单执行人进行强制校验
         
         # 记录结果
         if errors:
@@ -136,12 +128,14 @@ def order_executor_update_view(request):
                 order_id = form.cleaned_data.get('order_id')
                 order_executor = form.cleaned_data.get('order_executor')
                 orig_order_executor = form.cleaned_data.get('orig_order_executor')
+                orig_order_executor_name = form.cleaned_data.get('orig_order_executor_name')
                 
                 data = [{
                     'purchase_package_no': purchase_package_no,
                     'order_id': order_id,
                     'order_executor': order_executor,
                     'orig_order_executor': orig_order_executor,
+                    'orig_order_executor_name': orig_order_executor_name,
                 }]
                 
                 sqls, rollback_sqls, validation_failures = _generate_sqls(
@@ -192,6 +186,7 @@ def _process_excel_import(excel_file, dynamic_id, ops_remark, ops_remark_raw, fo
         'order_id': ['订单号', 'order_id'],
         'order_executor': ['订单执行人账号', 'order_executor'],
         'orig_order_executor': ['原订单执行人账号', 'orig_order_executor'],
+        'orig_order_executor_name': ['原订单执行人名称', 'orig_order_executor_name'],
     }.items():
         for name in possible_names:
             if name.lower() in headers_lower:
@@ -219,6 +214,7 @@ def _process_excel_import(excel_file, dynamic_id, ops_remark, ops_remark_raw, fo
             'order_id': order_id,
             'order_executor': order_executor,
             'orig_order_executor': str(row_dict.get(col_map.get('orig_order_executor', ''), '')).strip(),
+            'orig_order_executor_name': str(row_dict.get(col_map.get('orig_order_executor_name', ''), '')).strip(),
             'row_idx': row_idx,
         })
     
@@ -396,13 +392,53 @@ def _generate_sqls(data, dynamic_id, ops_remark):
             # 修改订单执行人场景：原本有值，回退到原值
             # 查询原执行人信息
             orig_user_org = UserOrgDetail.objects.filter(login_name=orig_order_executor).first()
+            
+            # 如果原订单执行人账号无效，使用提供的名称或空值，不报错
             if not orig_user_org:
-                row_idx = item.get('row_idx', '')
-                validation_failures.append({
-                    'row': row_idx,
-                    'orig_order_executor': orig_order_executor,
-                    'error': f'未找到原订单执行人信息：{orig_order_executor}'
-                })
+                # 使用提供的原订单执行人名称，如果没有则为空
+                orig_executor_name = item.get('orig_order_executor_name', '')
+                
+                if purchase_package_no:
+                    rollback_sql = (f"UPDATE tprly02 SET ORDER_EXECUTOR = '{orig_order_executor}', "
+                                   f"ORDER_EXECUTOR_NAME='{orig_executor_name}',"
+                                   f"OPS_REMARK='' "
+                                   f"WHERE PURCHASE_PACKAGE_NO IN ('{purchase_package_no}');")
+                    rollback_sqls.append(rollback_sql)
+                
+                if order_id:
+                    # 回退订单主表（使用提供的信息或空值）
+                    rollback_dd01 = (f"update tpodd01 set "
+                                    f"PUR_ORG_ID='',"
+                                    f"PUR_ORG_NAME='',"
+                                    f"CREATE_DEPT_CODE='',"
+                                    f"CREATE_DEPT_NAME='',"
+                                    f"CREATE_ORG_CODE='',"
+                                    f"CREATE_ORG_NAME='',"
+                                    f"CREATE_USER='{orig_order_executor}',"
+                                    f"CREATE_USER_ID='{orig_order_executor}',"
+                                    f"CREATE_USER_NAME='{orig_executor_name}',"
+                                    f"CREATE_PLATE_CODE='',"
+                                    f"CREATE_PLATE_NAME='',"
+                                    f"OPS_REMARK='' "
+                                    f"where ORDER_ID='{order_id}';")
+                    rollback_sqls.append(rollback_dd01)
+                    
+                    # 回退订单明细表（使用提供的信息或空值）
+                    rollback_dd02 = (f"update tpodd02 set "
+                                    f"PUR_ORG_ID='',"
+                                    f"PUR_ORG_NAME='',"
+                                    f"CREATE_DEPT_CODE='',"
+                                    f"CREATE_DEPT_NAME='',"
+                                    f"CREATE_ORG_CODE='',"
+                                    f"CREATE_ORG_NAME='',"
+                                    f"CREATE_USER='{orig_order_executor}',"
+                                    f"CREATE_USER_ID='{orig_order_executor}',"
+                                    f"CREATE_USER_NAME='{orig_executor_name}',"
+                                    f"CREATE_PLATE_CODE='',"
+                                    f"CREATE_PLATE_NAME='',"
+                                    f"OPS_REMARK='' "
+                                    f"where ORDER_ID='{order_id}';")
+                    rollback_sqls.append(rollback_dd02)
                 continue
             
             if purchase_package_no:

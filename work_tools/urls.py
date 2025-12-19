@@ -17,6 +17,8 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 # 使用新的模块化views
 from . import views as view
 
@@ -106,6 +108,8 @@ urlpatterns = [
     path('contract/creator/validate/', view.validate_contract_creator_api,
          name='validate_contract_creator'),
     
+
+    
     # 校验失败文件下载
     path('download_validation_failure/', view.download_validation_failure_view,
          name='download_validation_failure'),
@@ -141,3 +145,9 @@ urlpatterns = [
     path('configurable/<str:table_code>/', view.configurable_data_view, name='configurable_data'),
     path('configurable/<str:table_code>/template/', view.download_template, name='configurable_template_download'),
 ]
+
+# 在打包环境中添加静态文件服务
+if settings.PACKAGED_CONFIG['is_packaged']:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # 添加媒体文件服务（如果需要）
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

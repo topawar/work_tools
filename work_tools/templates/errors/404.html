@@ -1,0 +1,23 @@
+{% extends 'errors/base_error.html' %}
+
+{% block title %}页面未找到{% endblock %}
+
+{% block icon %}🔍{% endblock %}
+
+{% block error_title %}页面未找到{% endblock %}
+
+{% block error_message %}
+抱歉，您访问的页面不存在或已被移动。请检查网址是否正确，或使用下方按钮返回。
+{% endblock %}
+
+{% block actions %}
+<a href="javascript:history.back()" class="btn btn-secondary">
+    ← 返回上页
+</a>
+<a href="/" class="btn btn-primary">
+    🏠 返回首页
+</a>
+<a href="/system/config/" class="btn btn-secondary">
+    ⚙️ 系统配置
+</a>
+{% endblock %}

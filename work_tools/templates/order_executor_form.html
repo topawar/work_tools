@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>订单执行人修改</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{% static 'vendor/css/bootstrap.min.css' %}" rel="stylesheet" />
     <style>
       body { background-color: #f8f9fa; padding: 15px; }
       .form-container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -42,6 +43,12 @@
         <div class="mb-3">
           {{ form.orig_order_executor.label_tag }} {{ form.orig_order_executor }}
           <div id="orig-executor-validation" class="help-text" style="margin-top: 5px"></div>
+          <div class="help-text">原订单执行人账号，允许为空（原本可能就没有执行人）</div>
+        </div>
+        <div class="mb-3">
+          {{ form.orig_order_executor_name.label_tag }} {{ form.orig_order_executor_name }}
+          <div class="auto-fill-hint" style="margin-top: 5px"></div>
+          <div class="help-text">原订单执行人名称，允许为空。如果账号存在会自动填充，否则请手动填写</div>
         </div>
 
         <div class="section-divider">批量导入</div>
@@ -82,6 +89,7 @@
             ⬇ 下载失败文件查看详细错误信息
           </a>
         </div>
+
       </div>
       {% endif %}
     </div>
@@ -140,6 +148,8 @@
 
       // 实时验证原订单执行人账号
       if (origExecutorInput) {
+        const origExecutorNameInput = document.getElementById("id_orig_order_executor_name");
+        
         origExecutorInput.addEventListener("input", function () {
           const loginName = this.value.trim();
 
@@ -148,9 +158,12 @@
             clearTimeout(origValidationTimeout);
           }
 
-          // 如果为空，显示提示（补充订单执行人场景）
+          // 如果为空，显示提示并清空名称字段
           if (!loginName) {
-            origValidationDiv.innerHTML = '<span style="color: #28a745;">✓ 补充订单执行人（原本为空，回退时将清空）</span>';
+            origValidationDiv.innerHTML = '<span style="color: #28a745;">✓ 允许为空（原本可能就没有执行人）</span>';
+            if (origExecutorNameInput) {
+              origExecutorNameInput.value = '';
+            }
             isOrigExecutorValid = true;
             return;
           }
@@ -165,15 +178,45 @@
               .then((data) => {
                 if (data.valid) {
                   origValidationDiv.innerHTML = `<span style="color: #28a745;">✓ ${data.message}</span>`;
+                  
+                  // 自动填充原订单执行人名称
+                  if (origExecutorNameInput && data.user_name) {
+                    origExecutorNameInput.value = data.user_name;
+                    // 显示自动填充提示
+                    const nameDiv = origExecutorNameInput.parentElement.querySelector('.auto-fill-hint');
+                    if (nameDiv) {
+                      nameDiv.innerHTML = '<span style="color: #28a745; font-size: 12px;">✓ 已自动填充</span>';
+                    }
+                  }
+                  
                   isOrigExecutorValid = true;
                 } else {
                   origValidationDiv.innerHTML = `<span style="color: #dc3545;">✗ ${data.message}</span>`;
-                  isOrigExecutorValid = false;
+                  
+                  // 查询失败时清空名称字段，提示手动填写
+                  if (origExecutorNameInput) {
+                    origExecutorNameInput.value = '';
+                    const nameDiv = origExecutorNameInput.parentElement.querySelector('.auto-fill-hint');
+                    if (nameDiv) {
+                      nameDiv.innerHTML = '<span style="color: #dc3545; font-size: 12px;">账号不存在，请手动填写名称</span>';
+                    }
+                  }
+                  
+                  isOrigExecutorValid = true; // 原订单执行人允许无效，不阻止提交
                 }
               })
               .catch((error) => {
                 origValidationDiv.innerHTML = '<span style="color: #dc3545;">验证失败，请稍后重试</span>';
-                isOrigExecutorValid = false;
+                
+                // 验证失败时提示手动填写
+                if (origExecutorNameInput) {
+                  const nameDiv = origExecutorNameInput.parentElement.querySelector('.auto-fill-hint');
+                  if (nameDiv) {
+                    nameDiv.innerHTML = '<span style="color: #dc3545; font-size: 12px;">验证失败，请手动填写名称</span>';
+                  }
+                }
+                
+                isOrigExecutorValid = true; // 原订单执行人允许无效，不阻止提交
               });
           }, 500);
         });
@@ -194,12 +237,8 @@
             return;
           }
 
-          // 如果填写了原订单执行人，需要验证（除非为空表示补充场景）
-          if (!hasExcel && origExecutorValue && !isOrigExecutorValid) {
-            e.preventDefault();
-            alert("请等待原订单执行人账号验证完成或输入有效的账号");
-            return;
-          }
+          // 原订单执行人允许为空或查询不到（因为可能原本就是空）
+          // 不进行强制校验
 
           const btns = form.querySelectorAll('button[type="submit"]');
           btns.forEach((b) => {

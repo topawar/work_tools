@@ -1,0 +1,4 @@
+# file: D:\Project\pyProject\work_tools\build_utils.py
+# hypothesis_version: 6.148.7
+
+[500, 1024, '#', '*.py', '-m', '.', '=', '==', '>', '>=', 'FAIL', 'PASS', 'Warning:', '__init__.py', '__main__', 'argparse', 'available', 'checks', 'compatible', 'dependencies', 'disk_space', 'django.contrib.admin', 'django.contrib.auth', 'hidden_imports', 'install', 'installed', 'issues', 'matplotlib', 'message', 'missing', 'modules', 'numpy', 'openpyxl', 'overall_valid', 'pandas', 'pip', 'project', 'pyinstaller', 'pypinyin', 'python_version', 'r', 'required', 'requirements.txt', 'scipy', 'utf-8', 'valid', 'version', 'waitress', 'warnings']

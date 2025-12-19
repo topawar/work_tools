@@ -1,4 +1,7 @@
 Django==5.2.8
 waitress>=2.1.2
+whitenoise>=6.6.0
 openpyxl>=3.1.0
 pypinyin>=0.51.0
+pytest>=7.0.0
+hypothesis>=6.0.0

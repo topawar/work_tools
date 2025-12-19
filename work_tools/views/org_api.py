@@ -77,12 +77,13 @@ def org_import_view(request):
                             pn = get_value(row, 'plate_name')
                             if not any([cc, cn, pc, pn]):
                                 continue
-                            if cc:
-                                OrgDetail.objects.update_or_create(company_code=cc, defaults={
-                                                                   'company_name': cn, 'plate_code': pc, 'plate_name': pn})
-                            else:
-                                OrgDetail.objects.create(
-                                    company_code=None, company_name=cn, plate_code=pc, plate_name=pn)
+                            # 直接创建记录，完全按照CSV文件内容导入
+                            OrgDetail.objects.create(
+                                company_code=cc if cc else None,
+                                company_name=cn,
+                                plate_code=pc,
+                                plate_name=pn
+                            )
                             done += 1
                             if done % PROGRESS_STEP == 0:
                                 j.done = done
@@ -118,8 +119,20 @@ def org_search_api(request):
     q = request.GET.get('q', '').strip()
     if not q:
         return JsonResponse([], safe=False)
-    qs = OrgDetail.objects.filter(
-        Q(company_name__icontains=q) | Q(company_code__icontains=q))[:10]
+    
+    # 优化搜索逻辑：优先精确匹配，然后模糊匹配
+    # 1. 精确匹配公司名称
+    exact_matches = OrgDetail.objects.filter(company_name=q)
+    
+    # 2. 模糊匹配公司名称和编码
+    fuzzy_matches = OrgDetail.objects.filter(
+        Q(company_name__icontains=q) | Q(company_code__icontains=q)
+    ).exclude(id__in=exact_matches.values_list('id', flat=True))
+    
+    # 合并结果，精确匹配在前
+    qs = list(exact_matches) + list(fuzzy_matches[:9])  # 总共最多10条
+    qs = qs[:10]
+    
     data = []
     for o in qs:
         label = f"{o.company_name}-{o.company_code}" if o.company_code else f"{o.company_name}"
@@ -127,7 +140,8 @@ def org_search_api(request):
             'label': label,
             'name': o.company_name,
             'code': o.company_code or '',
-            'plate': o.plate_name or ''
+            'plate': o.plate_name or '',
+            'is_exact': o.company_name == q  # 标记是否为精确匹配
         })
     return JsonResponse(data, safe=False)
 

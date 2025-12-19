@@ -1,0 +1,23 @@
+{% extends 'errors/base_error.html' %}
+
+{% block title %}服务器错误{% endblock %}
+
+{% block icon %}⚠️{% endblock %}
+
+{% block error_title %}服务器内部错误{% endblock %}
+
+{% block error_message %}
+服务器遇到了一个内部错误，无法完成您的请求。我们已经记录了这个问题，技术团队会尽快处理。
+{% endblock %}
+
+{% block actions %}
+<a href="javascript:history.back()" class="btn btn-secondary">
+    ← 返回上页
+</a>
+<a href="/" class="btn btn-primary">
+    🏠 返回首页
+</a>
+<button onclick="location.reload()" class="btn btn-secondary">
+    🔄 重试
+</button>
+{% endblock %}

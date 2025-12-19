@@ -1,7 +1,7 @@
 from django.db import models
 
 class OrgDetail(models.Model):
-    company_code = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    company_code = models.CharField(max_length=255, null=True, blank=True)  # 移除unique=True约束
     company_name = models.CharField(max_length=255, null=True, blank=True)
     plate_code = models.CharField(max_length=255, null=True, blank=True)
     plate_name = models.CharField(max_length=255, null=True, blank=True)
@@ -26,7 +26,9 @@ class UserOrgDetail(models.Model):
         verbose_name_plural = '用户组织机构'
 
 class ItemDetail(models.Model):
-    item_id = models.CharField(max_length=100, primary_key=True)
+    # 添加自增主键，item_id改为普通字段，允许重复
+    id = models.AutoField(primary_key=True)
+    item_id = models.CharField(max_length=100)  # 移除primary_key=True
     item_name = models.CharField(max_length=1000)
     category = models.CharField(max_length=100)
     item_uom = models.CharField(max_length=25)

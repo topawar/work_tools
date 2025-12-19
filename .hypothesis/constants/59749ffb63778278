@@ -1,0 +1,4 @@
+# file: D:\Project\pyProject\work_tools\work_tools\database_manager.py
+# hypothesis_version: 6.148.7
+
+[4096, '%Y%m%d_%H%M%S', 'app.database_manager', 'db_path', 'exists', 'integrity_ok', 'ok', 'rb', 'size', 'tables']

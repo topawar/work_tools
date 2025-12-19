@@ -89,11 +89,8 @@ def user_org_import_view(request):
                                 'plate_name': get_value(row, 'plate_name'),
                             })
                             if len(buffer) >= batch_size:
-                                uniq = {}
-                                for b in buffer:
-                                    uniq[b['login_name']] = b
-                                to_create = [UserOrgDetail(**v)
-                                             for v in uniq.values()]
+                                # 直接创建所有记录，不去重
+                                to_create = [UserOrgDetail(**b) for b in buffer]
                                 if to_create:
                                     with transaction.atomic():
                                         UserOrgDetail.objects.bulk_create(
@@ -106,11 +103,8 @@ def user_org_import_view(request):
                                            'done', 'updated_at'])
                                 buffer = []
                         if buffer:
-                            uniq = {}
-                            for b in buffer:
-                                uniq[b['login_name']] = b
-                            to_create = [UserOrgDetail(**v)
-                                         for v in uniq.values()]
+                            # 直接创建所有记录，不去重
+                            to_create = [UserOrgDetail(**b) for b in buffer]
                             if to_create:
                                 with transaction.atomic():
                                     UserOrgDetail.objects.bulk_create(to_create)

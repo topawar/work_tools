@@ -278,43 +278,95 @@ def cleanup_config_view(request):
 def select_folder_api(request):
     """
     文件夹选择API
-    使用tkinter文件对话框选择文件夹
+    优先使用Windows原生对话框，备选tkinter
     """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': '仅支持POST请求'})
     
+    folder_path = None
+    
+    # 方法1: 使用Windows原生对话框 (不需要tkinter)
     try:
-        import tkinter as tk
-        from tkinter import filedialog
+        import ctypes
+        from ctypes import wintypes
+        import sys
         
-        # 创建tkinter根窗口（隐藏）
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes('-topmost', True)
+        # Windows Shell32 API
+        shell32 = ctypes.windll.shell32
+        ole32 = ctypes.windll.ole32
         
-        # 打开文件夹选择对话框
-        folder_path = filedialog.askdirectory(
-            title='选择SQL文件输出目录',
-            mustexist=False
-        )
+        ole32.CoInitialize(None)
         
-        root.destroy()
+        # BROWSEINFO 结构
+        class BROWSEINFO(ctypes.Structure):
+            _fields_ = [
+                ("hwndOwner", wintypes.HWND),
+                ("pidlRoot", ctypes.c_void_p),
+                ("pszDisplayName", ctypes.c_wchar_p),
+                ("lpszTitle", ctypes.c_wchar_p),
+                ("ulFlags", ctypes.c_uint),
+                ("lpfn", ctypes.c_void_p),
+                ("lParam", ctypes.c_long),
+                ("iImage", ctypes.c_int),
+            ]
         
-        if folder_path:
-            logger.info(f"[文件夹选择] 用户选择了路径: {folder_path}")
-            return JsonResponse({
-                'success': True,
-                'path': folder_path
-            })
-        else:
+        BIF_RETURNONLYFSDIRS = 0x0001
+        BIF_NEWDIALOGSTYLE = 0x0040
+        
+        bi = BROWSEINFO()
+        bi.hwndOwner = None
+        bi.pidlRoot = None
+        bi.pszDisplayName = ctypes.create_unicode_buffer(260)
+        bi.lpszTitle = "选择SQL文件输出目录"
+        bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE
+        bi.lpfn = None
+        bi.lParam = 0
+        bi.iImage = 0
+        
+        pidl = shell32.SHBrowseForFolderW(ctypes.byref(bi))
+        
+        if pidl:
+            path_buffer = ctypes.create_unicode_buffer(260)
+            shell32.SHGetPathFromIDListW(pidl, path_buffer)
+            ole32.CoTaskMemFree(pidl)
+            folder_path = path_buffer.value
+        
+        ole32.CoUninitialize()
+        
+    except Exception as e:
+        logger.warning(f"[文件夹选择] Windows原生对话框失败: {e}, 尝试tkinter")
+        
+        # 方法2: 备选tkinter
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes('-topmost', True)
+            
+            folder_path = filedialog.askdirectory(
+                title='选择SQL文件输出目录',
+                mustexist=False
+            )
+            
+            root.destroy()
+            
+        except Exception as tk_error:
+            logger.error(f"[文件夹选择] tkinter也失败: {tk_error}")
             return JsonResponse({
                 'success': False,
-                'error': '用户取消选择'
+                'error': f'打开文件夹选择对话框失败，请手动输入路径'
             })
-            
-    except Exception as e:
-        logger.error(f"[文件夹选择] 失败: {str(e)}")
+    
+    if folder_path:
+        logger.info(f"[文件夹选择] 用户选择了路径: {folder_path}")
+        return JsonResponse({
+            'success': True,
+            'path': folder_path
+        })
+    else:
         return JsonResponse({
             'success': False,
-            'error': f'打开文件夹选择对话框失败: {str(e)}'
+            'error': '用户取消选择'
         })

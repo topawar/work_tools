@@ -11,6 +11,7 @@ from django.http import FileResponse
 from ..forms import UnitChangeForm
 from ..navigation import get_sidebar_groups
 from ..config import get_config
+from ..models import OrgDetail
 from ..sql_merge import chunk_list, format_in, merge_by_key, compose_or
 from ..logger_utils import log_view_input
 from .base import parse_ops_remark, extract_company_code, extract_company_name, _unique_code_by_name, save_sql_file
@@ -28,6 +29,89 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 logger = logging.getLogger('work_tools.view')
+
+
+def parse_unit_name_with_code(input_value):
+    """
+    解析单位名称输入，支持两种格式：
+    1. 纯名称：中核（上海）供应链管理有限公司
+    2. 名称-编码：中核（上海）供应链管理有限公司-99280563919161110148
+    
+    返回: (company_name, company_code)
+    """
+    if not input_value:
+        return None, None
+    
+    input_value = input_value.strip()
+    if not input_value:  # 处理空字符串或只有空格的情况
+        return None, None
+    
+    # 检查是否包含编码（以-分隔，且最后部分看起来像编码）
+    if '-' in input_value:
+        parts = input_value.rsplit('-', 1)  # 从右边分割，只分割一次
+        if len(parts) == 2:
+            name_part = parts[0].strip()
+            code_part = parts[1].strip()
+            
+            # 简单判断code_part是否像编码（长度>5且包含数字）
+            if len(code_part) > 5 and any(c.isdigit() for c in code_part):
+                return name_part, code_part
+    
+    # 如果不包含编码或格式不对，返回纯名称
+    return input_value, None
+
+
+def validate_original_unit_names(old_drafting_name=None, old_party_name=None):
+    """校验原单位名称是否在数据库中存在"""
+    errors = []
+    
+    if old_drafting_name:
+        name, code = parse_unit_name_with_code(old_drafting_name)
+        
+        if code:
+            # 如果有编码，进行精确匹配（名称+编码）
+            exists = OrgDetail.objects.filter(
+                company_name=name, 
+                company_code=code
+            ).exists()
+            if not exists:
+                errors.append(f'原起草单位名称"{name}"（编码：{code}）在数据库中不存在')
+        else:
+            # 如果没有编码，检查名称是否存在
+            records = OrgDetail.objects.filter(company_name=name)
+            if not records.exists():
+                errors.append(f'原起草单位名称"{name}"在数据库中不存在')
+            elif records.count() > 1:
+                # 如果存在多条记录，提示用户选择具体的编码
+                codes = [r.company_code for r in records if r.company_code]
+                if codes:
+                    codes_str = '、'.join(codes)
+                    errors.append(f'原起草单位名称"{name}"存在多条记录，请选择具体编码：{codes_str}')
+    
+    if old_party_name:
+        name, code = parse_unit_name_with_code(old_party_name)
+        
+        if code:
+            # 如果有编码，进行精确匹配（名称+编码）
+            exists = OrgDetail.objects.filter(
+                company_name=name, 
+                company_code=code
+            ).exists()
+            if not exists:
+                errors.append(f'原签约主体名称"{name}"（编码：{code}）在数据库中不存在')
+        else:
+            # 如果没有编码，检查名称是否存在
+            records = OrgDetail.objects.filter(company_name=name)
+            if not records.exists():
+                errors.append(f'原签约主体名称"{name}"在数据库中不存在')
+            elif records.count() > 1:
+                # 如果存在多条记录，提示用户选择具体的编码
+                codes = [r.company_code for r in records if r.company_code]
+                if codes:
+                    codes_str = '、'.join(codes)
+                    errors.append(f'原签约主体名称"{name}"存在多条记录，请选择具体编码：{codes_str}')
+    
+    return errors
 
 
 def validate_unit_change_records(records):
@@ -402,6 +486,27 @@ def unit_change_view(request):
                         'sidebar_groups': get_sidebar_groups(),
                     })
                 
+                # 校验原单位名称是否存在
+                unit_name_errors = []
+                for idx, record in enumerate(records):
+                    row_number = idx + 2  # 跳过表头
+                    errors = validate_original_unit_names(
+                        old_drafting_name=record.get('orig_drafting_name'),
+                        old_party_name=record.get('orig_party_name')
+                    )
+                    if errors:
+                        for error in errors:
+                            unit_name_errors.append(f'第{row_number}行: {error}')
+                
+                if unit_name_errors:
+                    for error in unit_name_errors:
+                        form.add_error(None, error)
+                    return render(request, 'unit_change_form.html', {
+                        'form': form,
+                        'active_menu': 'unit_change',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
                 # 从记录中判断是否更新
                 will_update_drafting = any(r.get('new_drafting_id') or r.get(
                     'new_drafting_name') for r in records)
@@ -424,6 +529,46 @@ def unit_change_view(request):
                                 if uc:
                                     r[k_id] = uc
             else:
+                # 单条记录模式 - 添加简单直接的校验
+                
+                # 校验1: 至少填写一个新单位信息
+                has_new_unit = bool(cd.get('new_drafting_name') or cd.get('new_party_name') or 
+                                   cd.get('new_drafting_id') or cd.get('new_party_id'))
+                
+                if not has_new_unit:
+                    form.add_error(None, '新起草单位名称，新签约主体名称至少有一项必填')
+                    return render(request, 'unit_change_form.html', {
+                        'form': form,
+                        'active_menu': 'unit_change',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
+                # 校验2: 至少填写一个标识字段
+                has_identifier = bool(cd.get('scheme_no') or cd.get('inquiry_no') or cd.get('result_no'))
+                
+                if not has_identifier:
+                    form.add_error(None, '采购方案编号，询价单编号，定标结果编号至少有一项必填')
+                    return render(request, 'unit_change_form.html', {
+                        'form': form,
+                        'active_menu': 'unit_change',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
+                # 校验3: 检查原单位名称是否在数据库中存在
+                unit_name_errors = validate_original_unit_names(
+                    old_drafting_name=cd.get('old_drafting_name'),
+                    old_party_name=cd.get('old_party_name')
+                )
+                
+                if unit_name_errors:
+                    for error in unit_name_errors:
+                        form.add_error(None, error)
+                    return render(request, 'unit_change_form.html', {
+                        'form': form,
+                        'active_menu': 'unit_change',
+                        'sidebar_groups': get_sidebar_groups(),
+                    })
+                
                 records = [{
                     'scheme': cd['scheme_no'],
                     'inquiry': cd['inquiry_no'],

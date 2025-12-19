@@ -1,0 +1,4 @@
+# file: D:\Project\pyProject\work_tools\work_tools\path_manager.py
+# hypothesis_version: 6.148.7
+
+['.json', '.log', 'BASE_DIR', 'DATABASE_PATH', 'LOGS_DIR', 'MEDIA_ROOT', 'STATIC_ROOT', 'TEMPLATES_DIRS', 'app.path_manager', 'base', 'config', 'db', 'db.sqlite3', 'downloads', 'frozen', 'logs', 'sql_output', 'static', 'temp', 'temp_files', 'temp_uploads', 'templates', 'validation_failures']

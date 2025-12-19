@@ -1,0 +1,9 @@
+{% load chinese_localization %}
+<span class="datetime-display" title="{{ formatted }}">
+    {% if show_relative and relative %}
+        <span class="relative-time">{{ relative }}</span>
+        <small class="text-muted ms-1">({{ formatted }})</small>
+    {% else %}
+        {{ formatted }}
+    {% endif %}
+</span>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可配置表管理 - Work Tools</title>
+    <link rel="stylesheet" href="{% static 'css/system-pages.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/css/bootstrap-icons.min.css' %}">
+    <style>
+        .config-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        .table-list {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: fit-content;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .table-item {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .table-item:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .table-item.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .table-display-name {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+        .table-code {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: 'Consolas', monospace;
+        }
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .list-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            color: #6b7280;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            color: #2563eb;
+        }
+        .tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-dialog {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        @media (max-width: 768px) {
+            .config-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">
+            <i class="bi bi-arrow-left"></i>
+            返回首页
+        </a>
+
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="bi bi-table"></i>
+                可配置表管理
+            </h1>
+            <p class="page-desc">配置通用数据修改页面的表和字段信息</p>
+        </div>
+
+        {% if message %}
+        <div class="alert alert-success">

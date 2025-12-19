@@ -11,7 +11,7 @@
         padding: 15px;
       }
       .container-fluid {
-        max-width: 1400px;
+        max-width: 1600px;
       }
       .config-layout {
         display: flex;
@@ -44,11 +44,11 @@
         color: white;
         border-color: #0d6efd;
       }
-      .table-item .table-display-name {
+      .table-display-name {
         font-weight: 500;
         margin-bottom: 4px;
       }
-      .table-item .table-code {
+      .table-code {
         font-size: 12px;
         opacity: 0.8;
       }
@@ -78,18 +78,32 @@
       .btn-group-small {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
       }
       .nav-tabs {
-        margin-bottom: 15px;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 20px;
       }
-      table {
-        margin-top: 15px;
+      .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #6c757d;
+        padding: 10px 20px;
+      }
+      .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+        background: none;
       }
       .badge-active {
         background: #28a745;
       }
       .badge-inactive {
         background: #dc3545;
+      }
+      .modal-body label {
+        font-weight: 500;
+        margin-top: 10px;
       }
       .save-notice {
         position: fixed;
@@ -112,6 +126,26 @@
         text-align: center;
         padding: 60px 20px;
         color: #6c757d;
+      }
+      .empty-state div:first-child {
+        font-size: 48px;
+        margin-bottom: 15px;
+      }
+      .action-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+      .action-buttons form {
+        margin: 0;
+        display: inline;
+      }
+      .action-buttons .btn {
+        white-space: nowrap;
+        padding: 5px 10px;
+        font-size: 13px;
       }
     </style>
   </head>
@@ -169,7 +203,7 @@
             </div>
             <div class="btn-group-small">
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editTableModal">编辑表配置</button>
-              <form method="post" action="/configurable-config/table/toggle/" style="display: inline">
+              <form method="post" action="/configurable-config/table/toggle/" style="margin: 0;">
                 {% csrf_token %}
                 <input type="hidden" name="table_id" value="{{ selected_table.id }}" />
                 <button type="submit" class="btn btn-outline-{% if selected_table.is_active %}warning{% else %}success{% endif %} btn-sm">
@@ -192,104 +226,112 @@
           <div class="tab-content">
             <!-- 修改字段配置 -->
             <div class="tab-pane fade show active" id="update-fields" role="tabpanel">
-              <div style="margin: 15px 0">
+              <div style="margin-bottom: 15px">
                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal" onclick="setFieldType('update')">+ 添加修改字段</button>
               </div>
-              <table class="table table-hover table-striped table-sm">
-                <thead>
-                  <tr>
-                    <th style="width: 11%">字段名</th>
-                    <th style="width: 11%">显示名称</th>
-                    <th style="width: 8%">数据类型</th>
-                    <th style="width: 12%">下拉框分组</th>
-                    <th style="width: 6%">必填</th>
-                    <th style="width: 6%">可为空</th>
-                    <th style="width: 12%">SQL文件名</th>
-                    <th style="width: 7%">最大长度</th>
-                    <th style="width: 5%">排序</th>
-                    <th style="width: 7%">状态</th>
-                    <th style="width: 15%">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if update_fields %} {% for field in update_fields %}
-                  <tr>
-                    <td><code>{{ field.field_name }}</code></td>
-                    <td>{{ field.display_name }}</td>
-                    <td>{{ field.get_data_type_display }}</td>
-                    <td>{% if field.dropdown_group %}{{ field.dropdown_group.group_name }}{% else %}-{% endif %}</td>
-                    <td>{% if field.is_required %}是{% else %}否{% endif %}</td>
-                    <td>{% if field.is_nullable %}是{% else %}否{% endif %}</td>
-                    <td>{{ field.sql_file_name|default:"-" }}</td>
-                    <td>{{ field.max_length|default:"-" }}</td>
-                    <td>{{ field.sort_order }}</td>
-                    <td><span class="badge badge-{% if field.is_active %}active{% else %}inactive{% endif %}">{% if field.is_active %}启用{% else %}禁用{% endif %}</span></td>
-                    <td>
-                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField({{ field.id }}, '{{ field.field_name }}', '{{ field.display_name }}', '{{ field.data_type }}', {{ field.is_required|lower }}, {{ field.is_nullable|lower }}, '{{ field.sql_file_name|default:'' }}', '{{ field.max_length|default:'' }}', '{{ field.default_value }}', {{ field.sort_order }}, 'update', '{{ field.dropdown_group.id|default:'' }}')">编辑</button>
-                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteField({{ field.id }})">删除</button>
-                      <form method="post" action="/configurable-config/field/toggle/" style="display: inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="field_id" value="{{ field.id }}" />
-                        <button type="submit" class="btn btn-sm btn-outline-{% if field.is_active %}warning{% else %}success{% endif %}">{% if field.is_active %}禁用{% else %}启用{% endif %}</button>
-                      </form>
-                    </td>
-                  </tr>
-                  {% endfor %} {% else %}
-                  <tr>
-                    <td colspan="11" class="text-center" style="padding: 40px">暂无修改字段配置</td>
-                  </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th style="width: 11%">字段名</th>
+                      <th style="width: 11%">显示名称</th>
+                      <th style="width: 8%">数据类型</th>
+                      <th style="width: 12%">下拉框分组</th>
+                      <th style="width: 6%">必填</th>
+                      <th style="width: 6%">可为空</th>
+                      <th style="width: 12%">SQL文件名</th>
+                      <th style="width: 7%">最大长度</th>
+                      <th style="width: 5%">排序</th>
+                      <th style="width: 7%">状态</th>
+                      <th style="width: 15%">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if update_fields %} {% for field in update_fields %}
+                    <tr>
+                      <td><code>{{ field.field_name }}</code></td>
+                      <td>{{ field.display_name }}</td>
+                      <td>{{ field.get_data_type_display }}</td>
+                      <td>{% if field.dropdown_group %}{{ field.dropdown_group.group_name }}{% else %}-{% endif %}</td>
+                      <td>{% if field.is_required %}是{% else %}否{% endif %}</td>
+                      <td>{% if field.is_nullable %}是{% else %}否{% endif %}</td>
+                      <td>{{ field.sql_file_name|default:"-" }}</td>
+                      <td>{{ field.max_length|default:"-" }}</td>
+                      <td>{{ field.sort_order }}</td>
+                      <td><span class="badge badge-{% if field.is_active %}active{% else %}inactive{% endif %}">{% if field.is_active %}启用{% else %}禁用{% endif %}</span></td>
+                      <td>
+                        <div class="action-buttons">
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField({{ field.id }}, '{{ field.field_name }}', '{{ field.display_name }}', '{{ field.data_type }}', {{ field.is_required|lower }}, {{ field.is_nullable|lower }}, '{{ field.sql_file_name|default:'' }}', '{{ field.max_length|default:'' }}', '{{ field.default_value }}', {{ field.sort_order }}, 'update', '{{ field.dropdown_group.id|default:'' }}')">编辑</button>
+                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteField({{ field.id }})">删除</button>
+                          <form method="post" action="/configurable-config/field/toggle/" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="field_id" value="{{ field.id }}" />
+                            <button type="submit" class="btn btn-sm btn-outline-{% if field.is_active %}warning{% else %}success{% endif %}">{% if field.is_active %}禁用{% else %}启用{% endif %}</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %} {% else %}
+                    <tr>
+                      <td colspan="11" class="text-center" style="padding: 40px">暂无修改字段配置</td>
+                    </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <!-- 查询字段配置 -->
             <div class="tab-pane fade" id="query-fields" role="tabpanel">
-              <div style="margin: 15px 0">
+              <div style="margin-bottom: 15px">
                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal" onclick="setFieldType('query')">+ 添加查询字段</button>
               </div>
-              <table class="table table-hover table-striped table-sm">
-                <thead>
-                  <tr>
-                    <th style="width: 13%">字段名</th>
-                    <th style="width: 13%">显示名称</th>
-                    <th style="width: 10%">数据类型</th>
-                    <th style="width: 13%">下拉框分组</th>
-                    <th style="width: 8%">必填</th>
-                    <th style="width: 10%">默认值</th>
-                    <th style="width: 6%">排序</th>
-                    <th style="width: 9%">状态</th>
-                    <th style="width: 18%">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if query_fields %} {% for field in query_fields %}
-                  <tr>
-                    <td><code>{{ field.field_name }}</code></td>
-                    <td>{{ field.display_name }}</td>
-                    <td>{{ field.get_data_type_display }}</td>
-                    <td>{% if field.dropdown_group %}{{ field.dropdown_group.group_name }}{% else %}-{% endif %}</td>
-                    <td>{% if field.is_required %}是{% else %}否{% endif %}</td>
-                    <td>{{ field.default_value|default:"-" }}</td>
-                    <td>{{ field.sort_order }}</td>
-                    <td><span class="badge badge-{% if field.is_active %}active{% else %}inactive{% endif %}">{% if field.is_active %}启用{% else %}禁用{% endif %}</span></td>
-                    <td>
-                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField({{ field.id }}, '{{ field.field_name }}', '{{ field.display_name }}', '{{ field.data_type }}', {{ field.is_required|lower }}, false, '', '{{ field.max_length|default:'' }}', '{{ field.default_value }}', {{ field.sort_order }}, 'query', '{{ field.dropdown_group.id|default:'' }}')">编辑</button>
-                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteField({{ field.id }})">删除</button>
-                      <form method="post" action="/configurable-config/field/toggle/" style="display: inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="field_id" value="{{ field.id }}" />
-                        <button type="submit" class="btn btn-sm btn-outline-{% if field.is_active %}warning{% else %}success{% endif %}">{% if field.is_active %}禁用{% else %}启用{% endif %}</button>
-                      </form>
-                    </td>
-                  </tr>
-                  {% endfor %} {% else %}
-                  <tr>
-                    <td colspan="9" class="text-center" style="padding: 40px">暂无查询字段配置</td>
-                  </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th style="width: 13%">字段名</th>
+                      <th style="width: 13%">显示名称</th>
+                      <th style="width: 10%">数据类型</th>
+                      <th style="width: 13%">下拉框分组</th>
+                      <th style="width: 8%">必填</th>
+                      <th style="width: 10%">默认值</th>
+                      <th style="width: 6%">排序</th>
+                      <th style="width: 9%">状态</th>
+                      <th style="width: 18%">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if query_fields %} {% for field in query_fields %}
+                    <tr>
+                      <td><code>{{ field.field_name }}</code></td>
+                      <td>{{ field.display_name }}</td>
+                      <td>{{ field.get_data_type_display }}</td>
+                      <td>{% if field.dropdown_group %}{{ field.dropdown_group.group_name }}{% else %}-{% endif %}</td>
+                      <td>{% if field.is_required %}是{% else %}否{% endif %}</td>
+                      <td>{{ field.default_value|default:"-" }}</td>
+                      <td>{{ field.sort_order }}</td>
+                      <td><span class="badge badge-{% if field.is_active %}active{% else %}inactive{% endif %}">{% if field.is_active %}启用{% else %}禁用{% endif %}</span></td>
+                      <td>
+                        <div class="action-buttons">
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField({{ field.id }}, '{{ field.field_name }}', '{{ field.display_name }}', '{{ field.data_type }}', {{ field.is_required|lower }}, false, '', '{{ field.max_length|default:'' }}', '{{ field.default_value }}', {{ field.sort_order }}, 'query', '{{ field.dropdown_group.id|default:'' }}')">编辑</button>
+                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteField({{ field.id }})">删除</button>
+                          <form method="post" action="/configurable-config/field/toggle/" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="field_id" value="{{ field.id }}" />
+                            <button type="submit" class="btn btn-sm btn-outline-{% if field.is_active %}warning{% else %}success{% endif %}">{% if field.is_active %}禁用{% else %}启用{% endif %}</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %} {% else %}
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 40px">暂无查询字段配置</td>
+                    </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           {% else %}
@@ -317,10 +359,10 @@
               <label for="table_name">数据库表名 *</label>
               <input type="text" class="form-control" id="table_name" name="table_name" required placeholder="例如: tphct01" />
 
-              <label for="display_name" style="margin-top: 10px">显示名称 *</label>
+              <label for="display_name">显示名称 *</label>
               <input type="text" class="form-control" id="display_name" name="display_name" required placeholder="例如: 供应商名称修改" />
 
-              <label for="description" style="margin-top: 10px">功能描述</label>
+              <label for="description">功能描述</label>
               <textarea class="form-control" id="description" name="description" rows="3"></textarea>
               
               <small class="text-muted" style="margin-top: 10px; display: block">注:表编码由系统自动生成,无需手动输入</small>
@@ -351,17 +393,20 @@
               <input type="text" class="form-control" value="{{ selected_table.table_code }}" disabled />
               <small class="text-muted">表编码由系统自动生成,不可修改</small>
 
-              <label for="edit_table_name" style="margin-top: 10px">数据库表名 *</label>
+              <label for="edit_table_name">数据库表名 *</label>
               <input type="text" class="form-control" id="edit_table_name" name="table_name" value="{{ selected_table.table_name }}" required />
 
-              <label for="edit_display_name" style="margin-top: 10px">显示名称 *</label>
+              <label for="edit_display_name">显示名称 *</label>
               <input type="text" class="form-control" id="edit_display_name" name="display_name" value="{{ selected_table.display_name }}" required />
 
-              <label for="edit_description" style="margin-top: 10px">功能描述</label>
+              <label for="edit_description">功能描述</label>
               <textarea class="form-control" id="edit_description" name="description" rows="3">{{ selected_table.description }}</textarea>
 
-              <label style="margin-top: 15px">启用的数据库配置</label>
-              <div style="padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; max-height: 200px; overflow-y: auto">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 8px;">
+                <label style="margin: 0;">启用的数据库配置</label>
+                <button type="button" class="btn btn-sm btn-success" onclick="showAddDbConfigModal()">+ 快速添加数据库</button>
+              </div>
+              <div style="padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; max-height: 200px; overflow-y: auto" id="dbConfigList">
                 {% if all_db_configs %}
                   {% for db_config in all_db_configs %}
                   <div style="margin-bottom: 8px">
@@ -378,7 +423,7 @@
                   </div>
                   {% endfor %}
                 {% else %}
-                  <small class="text-muted">暂无可用的数据库配置，请先到<a href="/database-config/" target="_blank">数据库配置管理</a>中添加</small>
+                  <small class="text-muted">暂无可用的数据库配置，点击上方按钮快速添加</small>
                 {% endif %}
               </div>
               <small class="text-muted">选择该表生成SQL时需要包含的数据库</small>
@@ -408,10 +453,10 @@
               <label for="field_name">字段名 *</label>
               <input type="text" class="form-control" id="field_name" name="field_name" required placeholder="例如: SUPPLIER_NAME" />
 
-              <label for="field_display_name" style="margin-top: 10px">显示名称 *</label>
+              <label for="field_display_name">显示名称 *</label>
               <input type="text" class="form-control" id="field_display_name" name="display_name" required placeholder="例如: 供应商名称" />
 
-              <label for="field_data_type" style="margin-top: 10px">数据类型 *</label>
+              <label for="field_data_type">数据类型 *</label>
               <select class="form-select" id="field_data_type" name="data_type" required onchange="toggleDropdownGroup('field')">
                 <option value="text">文本</option>
                 <option value="number">数字</option>
@@ -445,13 +490,13 @@
                 <small class="text-muted">用于生成SQL文件名，多个字段用顿号连接</small>
               </div>
 
-              <label for="field_max_length" style="margin-top: 10px">最大长度</label>
+              <label for="field_max_length">最大长度</label>
               <input type="number" class="form-control" id="field_max_length" name="max_length" placeholder="仅文本字段需要" />
 
-              <label for="field_default_value" style="margin-top: 10px">默认值</label>
+              <label for="field_default_value">默认值</label>
               <input type="text" class="form-control" id="field_default_value" name="default_value" placeholder="查询字段可设置默认值" />
 
-              <label for="field_sort_order" style="margin-top: 10px">排序顺序</label>
+              <label for="field_sort_order">排序顺序</label>
               <input type="number" class="form-control" id="field_sort_order" name="sort_order" value="0" />
             </div>
             <div class="modal-footer">
@@ -478,10 +523,10 @@
               <label for="edit_field_name">字段名 *</label>
               <input type="text" class="form-control" id="edit_field_name" name="field_name" required />
 
-              <label for="edit_field_display_name" style="margin-top: 10px">显示名称 *</label>
+              <label for="edit_field_display_name">显示名称 *</label>
               <input type="text" class="form-control" id="edit_field_display_name" name="display_name" required />
 
-              <label for="edit_field_data_type" style="margin-top: 10px">数据类型 *</label>
+              <label for="edit_field_data_type">数据类型 *</label>
               <select class="form-select" id="edit_field_data_type" name="data_type" required onchange="toggleDropdownGroup('edit_field')">
                 <option value="text">文本</option>
                 <option value="number">数字</option>
@@ -515,13 +560,13 @@
                 <small class="text-muted">用于生成SQL文件名</small>
               </div>
 
-              <label for="edit_field_max_length" style="margin-top: 10px">最大长度</label>
+              <label for="edit_field_max_length">最大长度</label>
               <input type="number" class="form-control" id="edit_field_max_length" name="max_length" />
 
-              <label for="edit_field_default_value" style="margin-top: 10px">默认值</label>
+              <label for="edit_field_default_value">默认值</label>
               <input type="text" class="form-control" id="edit_field_default_value" name="default_value" />
 
-              <label for="edit_field_sort_order" style="margin-top: 10px">排序顺序</label>
+              <label for="edit_field_sort_order">排序顺序</label>
               <input type="number" class="form-control" id="edit_field_sort_order" name="sort_order" />
             </div>
             <div class="modal-footer">
@@ -533,6 +578,54 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- 快速添加数据库配置模态框 -->
+    <div class="modal fade" id="addDbConfigModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="addDbConfigForm">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">快速添加数据库配置</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <label for="quick_config_name">配置名称 *</label>
+              <input type="text" class="form-control" id="quick_config_name" name="config_name" required placeholder="例如: 生产环境数据库" />
+
+              <label for="quick_db_type">数据库类型 *</label>
+              <select class="form-select" id="quick_db_type" name="db_type" required>
+                <option value="oracle">Oracle</option>
+                <option value="mysql">MySQL</option>
+                <option value="postgresql">PostgreSQL</option>
+                <option value="sqlserver">SQL Server</option>
+              </select>
+
+              <label for="quick_db_host">数据库主机 *</label>
+              <input type="text" class="form-control" id="quick_db_host" name="db_host" required placeholder="例如: 192.168.1.100" />
+
+              <label for="quick_db_port">端口号 *</label>
+              <input type="number" class="form-control" id="quick_db_port" name="db_port" required placeholder="例如: 1521" />
+
+              <label for="quick_db_name">数据库名称 *</label>
+              <input type="text" class="form-control" id="quick_db_name" name="db_name" required placeholder="例如: ORCL" />
+
+              <label for="quick_db_user">用户名 *</label>
+              <input type="text" class="form-control" id="quick_db_user" name="db_user" required placeholder="例如: admin" />
+
+              <label for="quick_db_password">密码 *</label>
+              <input type="password" class="form-control" id="quick_db_password" name="db_password" required />
+
+              <div id="quickAddMessage" style="margin-top: 10px; display: none;"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="button" class="btn btn-primary" onclick="submitQuickDbConfig()">保存并选中</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -620,6 +713,7 @@
         }
       }
 
+      // 消息自动消失
       (function () {
         var success = document.getElementById('saveSuccess');
         var err = document.getElementById('saveError');
@@ -639,6 +733,78 @@
         fadeOut(err);
       })();
       
+      // 显示快速添加数据库配置模态框
+      function showAddDbConfigModal() {
+        var modal = new bootstrap.Modal(document.getElementById('addDbConfigModal'));
+        modal.show();
+      }
+
+      // 提交快速添加数据库配置
+      function submitQuickDbConfig() {
+        var form = document.getElementById('addDbConfigForm');
+        var formData = new FormData(form);
+        var messageDiv = document.getElementById('quickAddMessage');
+
+        // 显示加载状态
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'alert alert-info';
+        messageDiv.textContent = '正在添加数据库配置...';
+
+        fetch('/database-config/add/', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            messageDiv.className = 'alert alert-success';
+            messageDiv.textContent = '数据库配置添加成功！';
+            
+            // 添加新的数据库配置到列表
+            var dbConfigList = document.getElementById('dbConfigList');
+            var newCheckbox = document.createElement('div');
+            newCheckbox.style.marginBottom = '8px';
+            newCheckbox.innerHTML = `
+              <input 
+                type="checkbox" 
+                id="db_${data.db_config_id}" 
+                name="db_configs" 
+                value="${data.db_config_id}"
+                checked
+              />
+              <label for="db_${data.db_config_id}" style="margin: 0; font-weight: normal">
+                ${data.config_name} (${data.db_host} - ${data.db_name})
+              </label>
+            `;
+            
+            // 如果列表为空，先清空提示文字
+            if (dbConfigList.querySelector('.text-muted')) {
+              dbConfigList.innerHTML = '';
+            }
+            
+            dbConfigList.appendChild(newCheckbox);
+            
+            // 1秒后关闭模态框
+            setTimeout(function() {
+              var modal = bootstrap.Modal.getInstance(document.getElementById('addDbConfigModal'));
+              modal.hide();
+              form.reset();
+              messageDiv.style.display = 'none';
+            }, 1000);
+          } else {
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = '添加失败: ' + (data.error || '未知错误');
+          }
+        })
+        .catch(error => {
+          messageDiv.className = 'alert alert-danger';
+          messageDiv.textContent = '添加失败: ' + error.message;
+        });
+      }
+
       // 搜索功能
       (function() {
         var searchInput = document.getElementById('searchInput');
