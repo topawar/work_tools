@@ -34,11 +34,25 @@
       }
       .form-col {
         flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .form-col label {
+        white-space: nowrap;
+        margin: 0;
+        min-width: fit-content;
+      }
+      .form-col input,
+      .form-col select,
+      .form-col textarea {
+        flex: 1;
       }
       .form-control {
         padding: 6px 8px;
         font-size: 14px;
         border-radius: 4px;
+        width: 100%;
       }
       .submit-btn {
         width: 100%;
@@ -88,21 +102,23 @@
 
         <!-- 基本信息 -->
         <div class="form-col">
-          {% render_field form.dynamic_id input_class="form-input" label_class="form-label" %}
+          {{ form.dynamic_id.label_tag }}
+          {{ form.dynamic_id }}
         </div>
 
         <!-- 操作备注 -->
-        <div class="form-col" style="margin-top: 15px">
-          {% render_field form.ops_remark input_class="form-input" label_class="form-label" %}
-          <div class="form-text">支持ONES链接格式：#69054 修改数据</div>
+        <div class="form-col" style="margin-top: 15px; flex-wrap: wrap">
+          {{ form.ops_remark.label_tag }}
+          {{ form.ops_remark }}
         </div>
+        <div class="form-text" style="margin-top: 5px; margin-left: 0">支持ONES链接格式：#69054 修改数据</div>
 
         <!-- 查询条件区 -->
         {% if query_fields %}
         <div class="section-divider">查询条件</div>
         {% for field in query_fields %}
         <div class="form-col">
-          <label for="id_{{ field.field_key }}">{{ field.display_name }}{% if field.is_required %}<span class="required">*</span>{% endif %}</label><br />
+          <label for="id_{{ field.field_key }}">{{ field.display_name }}{% if field.is_required %}<span class="required">*</span>{% endif %}</label>
           {{ field.form_field }}
         </div>
         {% endfor %}
@@ -114,11 +130,11 @@
         {% for field in update_fields %}
         <div class="form-row">
           <div class="form-col">
-            <label for="id_{{ field.field_key }}">{{ field.display_name }}</label><br />
+            <label for="id_{{ field.field_key }}">{{ field.display_name }}</label>
             {{ field.form_field }}
           </div>
           <div class="form-col">
-            <label for="id_orig_{{ field.field_name }}">原{{ field.display_name }}</label><br />
+            <label for="id_orig_{{ field.field_name }}">原{{ field.display_name }}</label>
             {% for orig_field in orig_fields %}
               {% if orig_field.field_name == field.field_name %}
                 {{ orig_field.form_field }}
@@ -130,12 +146,13 @@
         {% endif %}
 
         <!-- 批量导入 -->
-        <div class="form-col" style="margin-top: 15px">
-          {% render_field form.excel_file input_class="form-input" label_class="form-label" %}
-          <div class="form-text">
-            {{ form.excel_file.help_text }}
-            <a href="{% url 'configurable_template_download' table_config.table_code %}">下载Excel模板</a>
-          </div>
+        <div class="form-col" style="margin-top: 15px; flex-wrap: wrap">
+          {{ form.excel_file.label_tag }}
+          {{ form.excel_file }}
+        </div>
+        <div class="form-text" style="margin-top: 5px; margin-left: 0">
+          {{ form.excel_file.help_text }}
+          <a href="{% url 'configurable_template_download' table_config.table_code %}">下载Excel模板</a>
         </div>
 
         {% if form.non_field_errors %}
