@@ -42,12 +42,8 @@ def database_config_add(request):
     """添加数据库配置"""
     try:
         config_name = request.POST.get('config_name', '').strip()
-        db_type = request.POST.get('db_type', 'oracle').strip()
         db_host = request.POST.get('db_host', '').strip()
-        db_port = request.POST.get('db_port', '').strip()
         db_name = request.POST.get('db_name', '').strip()
-        db_user = request.POST.get('db_user', '').strip()
-        db_password = request.POST.get('db_password', '').strip()
         config_code = request.POST.get('config_code', '').strip()
         sort_order = request.POST.get('sort_order', '0')
         
@@ -77,12 +73,8 @@ def database_config_add(request):
         db_config = DatabaseConfig.objects.create(
             config_code=config_code,
             config_name=config_name,
-            db_type=db_type,
             db_host=db_host,
-            db_port=db_port,
             db_name=db_name,
-            db_user=db_user,
-            db_password=db_password,
             sort_order=int(sort_order),
             is_active=True
         )

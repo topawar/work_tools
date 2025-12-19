@@ -148,6 +148,59 @@
         padding: 5px 10px;
         font-size: 13px;
       }
+      .field-search-box {
+        position: relative;
+        margin-bottom: 15px;
+      }
+      .field-search-box input {
+        padding-right: 35px;
+      }
+      .field-search-box .clear-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: none;
+        color: #6c757d;
+        font-size: 20px;
+        line-height: 1;
+        padding: 0;
+        width: 25px;
+        height: 25px;
+        cursor: pointer;
+        display: none;
+      }
+      .field-search-box .clear-btn:hover {
+        color: #495057;
+      }
+      .pagination-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e9ecef;
+      }
+      .pagination {
+        margin: 0;
+      }
+      .pagination .page-link {
+        color: #0d6efd;
+        border-color: #dee2e6;
+      }
+      .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+      }
+      .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+      }
+      .page-info {
+        color: #6c757d;
+        font-size: 14px;
+        margin-left: 15px;
+      }
     </style>
   </head>
   <body>
@@ -228,8 +281,16 @@
           <div class="tab-content">
             <!-- 修改字段配置 -->
             <div class="tab-pane fade show active" id="update-fields" role="tabpanel">
-              <div style="margin-bottom: 15px">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px;">
                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal" onclick="setFieldType('update')">+ 添加修改字段</button>
+                <div class="field-search-box" style="flex: 1; max-width: 300px; margin-bottom: 0;">
+                  <input type="text" 
+                         id="fieldSearchInput" 
+                         class="form-control form-control-sm" 
+                         placeholder="搜索字段名或显示名称..." 
+                         value="{{ field_search }}">
+                  <button type="button" id="clearFieldSearch" class="clear-btn" onclick="clearFieldSearch()">×</button>
+                </div>
               </div>
               <div class="table-responsive">
                 <table class="table table-hover table-striped">
@@ -249,7 +310,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {% if update_fields %} {% for field in update_fields %}
+                    {% if update_fields_page and update_fields_page.object_list %} {% for field in update_fields_page %}
                     <tr>
                       <td><code>{{ field.field_name }}</code></td>
                       <td>{{ field.display_name }}</td>
@@ -281,12 +342,44 @@
                   </tbody>
                 </table>
               </div>
+              
+              <!-- 修改字段分页控件 -->
+              {% if update_fields_page and update_fields_page.paginator.num_pages > 1 %}
+              <div class="pagination-container">
+                <nav>
+                  <ul class="pagination pagination-sm">
+                    <li class="page-item {% if not update_fields_page.has_previous %}disabled{% endif %}">
+                      <a class="page-link" href="?table_id={{ selected_table.id }}&update_page={{ update_fields_page.previous_page_number }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.query_page %}&query_page={{ request.GET.query_page }}{% endif %}">上一页</a>
+                    </li>
+                    {% for num in update_fields_page.paginator.page_range %}
+                      {% if num == update_fields_page.number %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% elif num > update_fields_page.number|add:'-3' and num < update_fields_page.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?table_id={{ selected_table.id }}&update_page={{ num }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.query_page %}&query_page={{ request.GET.query_page }}{% endif %}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not update_fields_page.has_next %}disabled{% endif %}">
+                      <a class="page-link" href="?table_id={{ selected_table.id }}&update_page={{ update_fields_page.next_page_number }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.query_page %}&query_page={{ request.GET.query_page }}{% endif %}">下一页</a>
+                    </li>
+                  </ul>
+                </nav>
+                <span class="page-info">第 {{ update_fields_page.number }} / {{ update_fields_page.paginator.num_pages }} 页</span>
+              </div>
+              {% endif %}
             </div>
 
             <!-- 查询字段配置 -->
             <div class="tab-pane fade" id="query-fields" role="tabpanel">
-              <div style="margin-bottom: 15px">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 15px;">
                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal" onclick="setFieldType('query')">+ 添加查询字段</button>
+                <div class="field-search-box" style="flex: 1; max-width: 300px; margin-bottom: 0;">
+                  <input type="text" 
+                         id="fieldSearchInput2" 
+                         class="form-control form-control-sm" 
+                         placeholder="搜索字段名或显示名称..." 
+                         value="{{ field_search }}">
+                  <button type="button" id="clearFieldSearch2" class="clear-btn" onclick="clearFieldSearch()">×</button>
+                </div>
               </div>
               <div class="table-responsive">
                 <table class="table table-hover table-striped">
@@ -304,7 +397,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {% if query_fields %} {% for field in query_fields %}
+                    {% if query_fields_page and query_fields_page.object_list %} {% for field in query_fields_page %}
                     <tr>
                       <td><code>{{ field.field_name }}</code></td>
                       <td>{{ field.display_name }}</td>
@@ -334,6 +427,30 @@
                   </tbody>
                 </table>
               </div>
+              
+              <!-- 查询字段分页控件 -->
+              {% if query_fields_page and query_fields_page.paginator.num_pages > 1 %}
+              <div class="pagination-container">
+                <nav>
+                  <ul class="pagination pagination-sm">
+                    <li class="page-item {% if not query_fields_page.has_previous %}disabled{% endif %}">
+                      <a class="page-link" href="?table_id={{ selected_table.id }}&query_page={{ query_fields_page.previous_page_number }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.update_page %}&update_page={{ request.GET.update_page }}{% endif %}">上一页</a>
+                    </li>
+                    {% for num in query_fields_page.paginator.page_range %}
+                      {% if num == query_fields_page.number %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                      {% elif num > query_fields_page.number|add:'-3' and num < query_fields_page.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?table_id={{ selected_table.id }}&query_page={{ num }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.update_page %}&update_page={{ request.GET.update_page }}{% endif %}">{{ num }}</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not query_fields_page.has_next %}disabled{% endif %}">
+                      <a class="page-link" href="?table_id={{ selected_table.id }}&query_page={{ query_fields_page.next_page_number }}{% if field_search %}&field_search={{ field_search }}{% endif %}{% if request.GET.update_page %}&update_page={{ request.GET.update_page }}{% endif %}">下一页</a>
+                    </li>
+                  </ul>
+                </nav>
+                <span class="page-info">第 {{ query_fields_page.number }} / {{ query_fields_page.paginator.num_pages }} 页</span>
+              </div>
+              {% endif %}
             </div>
           </div>
           {% else %}
@@ -620,28 +737,11 @@
               <label for="quick_config_name">配置名称 *</label>
               <input type="text" class="form-control" id="quick_config_name" name="config_name" required placeholder="例如: 生产环境数据库" />
 
-              <label for="quick_db_type">数据库类型 *</label>
-              <select class="form-select" id="quick_db_type" name="db_type" required>
-                <option value="oracle">Oracle</option>
-                <option value="mysql">MySQL</option>
-                <option value="postgresql">PostgreSQL</option>
-                <option value="sqlserver">SQL Server</option>
-              </select>
-
               <label for="quick_db_host">数据库主机 *</label>
               <input type="text" class="form-control" id="quick_db_host" name="db_host" required placeholder="例如: 192.168.1.100" />
 
-              <label for="quick_db_port">端口号 *</label>
-              <input type="number" class="form-control" id="quick_db_port" name="db_port" required placeholder="例如: 1521" />
-
               <label for="quick_db_name">数据库名称 *</label>
               <input type="text" class="form-control" id="quick_db_name" name="db_name" required placeholder="例如: ORCL" />
-
-              <label for="quick_db_user">用户名 *</label>
-              <input type="text" class="form-control" id="quick_db_user" name="db_user" required placeholder="例如: admin" />
-
-              <label for="quick_db_password">密码 *</label>
-              <input type="password" class="form-control" id="quick_db_password" name="db_password" required />
 
               <div id="quickAddMessage" style="margin-top: 10px; display: none;"></div>
             </div>
@@ -813,11 +913,8 @@
             messageDiv.className = 'alert alert-success';
             messageDiv.textContent = '数据库配置添加成功！';
             
-            // 添加新的数据库配置到列表
-            var dbConfigList = document.getElementById('dbConfigList');
-            var newCheckbox = document.createElement('div');
-            newCheckbox.style.marginBottom = '8px';
-            newCheckbox.innerHTML = `
+            // 创建新的复选框HTML
+            var checkboxHtml = `
               <input 
                 type="checkbox" 
                 id="db_${data.db_config_id}" 
@@ -830,12 +927,35 @@
               </label>
             `;
             
-            // 如果列表为空，先清空提示文字
-            if (dbConfigList.querySelector('.text-muted')) {
-              dbConfigList.innerHTML = '';
+            // 添加到编辑表配置的数据库列表
+            var dbConfigList = document.getElementById('dbConfigList');
+            if (dbConfigList) {
+              var newCheckbox = document.createElement('div');
+              newCheckbox.style.marginBottom = '8px';
+              newCheckbox.innerHTML = checkboxHtml;
+              
+              // 如果列表为空，先清空提示文字
+              if (dbConfigList.querySelector('.text-muted')) {
+                dbConfigList.innerHTML = '';
+              }
+              
+              dbConfigList.appendChild(newCheckbox);
             }
             
-            dbConfigList.appendChild(newCheckbox);
+            // 添加到添加表配置的数据库列表
+            var addDbConfigList = document.getElementById('addDbConfigList');
+            if (addDbConfigList) {
+              var newCheckbox2 = document.createElement('div');
+              newCheckbox2.style.marginBottom = '8px';
+              newCheckbox2.innerHTML = checkboxHtml.replace(/id="db_/g, 'id="add_db_').replace(/for="db_/g, 'for="add_db_');
+              
+              // 如果列表为空，先清空提示文字
+              if (addDbConfigList.querySelector('.text-muted')) {
+                addDbConfigList.innerHTML = '';
+              }
+              
+              addDbConfigList.appendChild(newCheckbox2);
+            }
             
             // 1秒后关闭模态框
             setTimeout(function() {
@@ -910,6 +1030,74 @@
             noResults.style.display = 'none';
           }
         }
+      })();
+      
+      // 字段搜索功能
+      (function() {
+        var fieldSearchInput = document.getElementById('fieldSearchInput');
+        var fieldSearchInput2 = document.getElementById('fieldSearchInput2');
+        var clearFieldSearchBtn = document.getElementById('clearFieldSearch');
+        var clearFieldSearchBtn2 = document.getElementById('clearFieldSearch2');
+        var searchTimeout;
+        
+        // 更新清除按钮显示状态
+        function updateClearButton(input, btn) {
+          if (input && btn) {
+            if (input.value) {
+              btn.style.display = 'block';
+            } else {
+              btn.style.display = 'none';
+            }
+          }
+        }
+        
+        // 执行搜索（跳转到新URL）
+        function performFieldSearch(query) {
+          var currentUrl = new URL(window.location.href);
+          if (query) {
+            currentUrl.searchParams.set('field_search', query);
+          } else {
+            currentUrl.searchParams.delete('field_search');
+          }
+          // 重置分页
+          currentUrl.searchParams.delete('update_page');
+          currentUrl.searchParams.delete('query_page');
+          window.location.href = currentUrl.toString();
+        }
+        
+        // 为两个搜索框添加事件监听
+        if (fieldSearchInput) {
+          updateClearButton(fieldSearchInput, clearFieldSearchBtn);
+          
+          fieldSearchInput.addEventListener('input', function() {
+            updateClearButton(fieldSearchInput, clearFieldSearchBtn);
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+              performFieldSearch(fieldSearchInput.value.trim());
+            }, 500);
+          });
+        }
+        
+        if (fieldSearchInput2) {
+          updateClearButton(fieldSearchInput2, clearFieldSearchBtn2);
+          
+          fieldSearchInput2.addEventListener('input', function() {
+            updateClearButton(fieldSearchInput2, clearFieldSearchBtn2);
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+              performFieldSearch(fieldSearchInput2.value.trim());
+            }, 500);
+          });
+        }
+        
+        // 清除字段搜索
+        window.clearFieldSearch = function() {
+          if (fieldSearchInput) fieldSearchInput.value = '';
+          if (fieldSearchInput2) fieldSearchInput2.value = '';
+          if (clearFieldSearchBtn) clearFieldSearchBtn.style.display = 'none';
+          if (clearFieldSearchBtn2) clearFieldSearchBtn2.style.display = 'none';
+          performFieldSearch('');
+        };
       })();
     </script>
   </body>

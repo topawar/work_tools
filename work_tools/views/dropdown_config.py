@@ -17,33 +17,57 @@ logger = logging.getLogger('work_tools.view')
 def dropdown_config_view(request):
     """配置管理主页面"""
     try:
-        # 获取所有配置分组
-        groups = DropdownGroup.objects.all().order_by('group_code')
+        from ..utils.pagination_helper import filter_by_search, paginate_queryset
+        from django.db.models import Q
+        
+        # 获取搜索关键词
+        search_query = request.GET.get('search', '').strip()
+        
+        # 获取分页参数
+        page = request.GET.get('page', 1)
+        option_page = request.GET.get('option_page', 1)
+        
+        # 获取所有配置分组（支持搜索）
+        groups_query = DropdownGroup.objects.all()
+        if search_query:
+            # 搜索分组名称和编码
+            groups_query = filter_by_search(groups_query, search_query, ['group_name', 'group_code'])
+        
+        groups_query = groups_query.order_by('group_code')
+        
+        # 分页处理分组列表（每页10条）
+        groups_page = paginate_queryset(groups_query, page, per_page=10)
         
         # 获取当前选中的分组
         selected_group_id = request.GET.get('group_id')
         if selected_group_id:
             selected_group = get_object_or_404(DropdownGroup, id=selected_group_id)
-        elif groups.exists():
-            selected_group = groups.first()
+        elif groups_query.exists():
+            selected_group = groups_query.first()
         else:
             selected_group = None
         
-        # 获取当前分组的配置项
-        options = []
+        # 获取当前分组的配置项（支持搜索和分页）
+        options_page = None
         if selected_group:
-            options = DropdownOption.objects.filter(
-                group=selected_group
-            ).order_by('sort_order', 'option_code')
+            options_query = DropdownOption.objects.filter(group=selected_group)
+            if search_query:
+                # 搜索选项标签和编码
+                options_query = filter_by_search(options_query, search_query, ['option_label', 'option_code'])
+            options_query = options_query.order_by('sort_order', 'option_code')
+            
+            # 分页处理选项列表（每页10条）
+            options_page = paginate_queryset(options_query, option_page, per_page=10)
         
         # 获取操作消息
         message = request.GET.get('message', '')
         error = request.GET.get('error', '')
         
         return render(request, 'dropdown_config.html', {
-            'groups': groups,
+            'groups_page': groups_page,
             'selected_group': selected_group,
-            'options': options,
+            'options_page': options_page,
+            'search_query': search_query,
             'sidebar_groups': get_sidebar_groups(),
             'active_menu': 'dropdown_config',
             'message': message,
@@ -52,9 +76,10 @@ def dropdown_config_view(request):
     except Exception as e:
         logger.error(f"[配置管理] 加载页面失败: {e}")
         return render(request, 'dropdown_config.html', {
-            'groups': [],
+            'groups_page': None,
             'selected_group': None,
-            'options': [],
+            'options_page': None,
+            'search_query': '',
             'sidebar_groups': get_sidebar_groups(),
             'active_menu': 'dropdown_config',
             'error': f'加载失败: {str(e)}',
@@ -135,6 +160,35 @@ def dropdown_group_toggle(request):
     except Exception as e:
         logger.error(f"[配置管理] 切换分组状态失败: {e}")
         return redirect(f'/dropdown-config/?error=操作失败: {str(e)}')
+
+
+@require_POST
+def dropdown_group_delete(request):
+    """删除配置分组"""
+    try:
+        group_id = request.POST.get('group_id')
+        group = get_object_or_404(DropdownGroup, id=group_id)
+        
+        group_code = group.group_code
+        group_name = group.group_name
+        
+        # 获取该分组下的选项数量
+        option_count = DropdownOption.objects.filter(group=group).count()
+        
+        # 使用事务确保数据一致性
+        with transaction.atomic():
+            # 删除分组会自动级联删除所有选项（因为外键设置了 on_delete=CASCADE）
+            group.delete()
+        
+        # 清除缓存
+        clear_dropdown_cache(group_code)
+        
+        logger.info(f"[配置管理] 删除分组成功: {group_code} ({group_name}), 同时删除了 {option_count} 个选项")
+        return redirect(f'/dropdown-config/?message=删除分组成功，共删除 {option_count} 个选项')
+        
+    except Exception as e:
+        logger.error(f"[配置管理] 删除分组失败: {e}")
+        return redirect(f'/dropdown-config/?error=删除分组失败: {str(e)}')
 
 
 @require_POST
@@ -288,6 +342,7 @@ __all__ = [
     'dropdown_group_add',
     'dropdown_group_edit',
     'dropdown_group_toggle',
+    'dropdown_group_delete',
     'dropdown_item_add',
     'dropdown_item_edit',
     'dropdown_item_delete',

@@ -14,6 +14,7 @@ def configurable_config_view(request):
     """配置管理主页面"""
     try:
         from ..models import DatabaseConfig
+        from ..utils.pagination_helper import filter_by_search, paginate_queryset
         
         # 获取所有表配置
         tables = ConfigurableTable.objects.all().order_by('sort_order', 'table_code')
@@ -30,19 +31,42 @@ def configurable_config_view(request):
         else:
             selected_table = None
         
-        # 获取当前表的字段配置（分类显示）
-        update_fields = []
-        query_fields = []
+        # 获取搜索关键词和分页参数
+        field_search = request.GET.get('field_search', '').strip()
+        update_page = request.GET.get('update_page', 1)
+        query_page = request.GET.get('query_page', 1)
+        
+        # 获取当前表的字段配置（分类显示、支持搜索和分页）
+        update_fields_page = None
+        query_fields_page = None
         if selected_table:
-            update_fields = ConfigurableField.objects.filter(
+            # 修改字段
+            update_fields_query = ConfigurableField.objects.filter(
                 table=selected_table,
                 field_type='update'
-            ).order_by('sort_order', 'field_name')
+            )
+            if field_search:
+                update_fields_query = filter_by_search(
+                    update_fields_query, 
+                    field_search, 
+                    ['field_name', 'display_name']
+                )
+            update_fields_query = update_fields_query.order_by('sort_order', 'field_name')
+            update_fields_page = paginate_queryset(update_fields_query, update_page, per_page=10)
             
-            query_fields = ConfigurableField.objects.filter(
+            # 查询字段
+            query_fields_query = ConfigurableField.objects.filter(
                 table=selected_table,
                 field_type='query'
-            ).order_by('sort_order', 'field_name')
+            )
+            if field_search:
+                query_fields_query = filter_by_search(
+                    query_fields_query, 
+                    field_search, 
+                    ['field_name', 'display_name']
+                )
+            query_fields_query = query_fields_query.order_by('sort_order', 'field_name')
+            query_fields_page = paginate_queryset(query_fields_query, query_page, per_page=10)
         
         # 获取所有下拉框分组
         dropdown_groups = DropdownGroup.objects.filter(is_active=True).order_by('group_code')
@@ -54,8 +78,9 @@ def configurable_config_view(request):
         return render(request, 'configurable_config.html', {
             'tables': tables,
             'selected_table': selected_table,
-            'update_fields': update_fields,
-            'query_fields': query_fields,
+            'update_fields_page': update_fields_page,
+            'query_fields_page': query_fields_page,
+            'field_search': field_search,
             'all_db_configs': all_db_configs,
             'dropdown_groups': dropdown_groups,
             'sidebar_groups': get_sidebar_groups(),
@@ -68,8 +93,9 @@ def configurable_config_view(request):
         return render(request, 'configurable_config.html', {
             'tables': [],
             'selected_table': None,
-            'update_fields': [],
-            'query_fields': [],
+            'update_fields_page': None,
+            'query_fields_page': None,
+            'field_search': '',
             'all_db_configs': [],
             'dropdown_groups': [],
             'sidebar_groups': get_sidebar_groups(),

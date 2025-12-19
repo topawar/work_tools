@@ -119,6 +119,7 @@ urlpatterns = [
     path('dropdown-config/group/add/', view.dropdown_group_add, name='dropdown_group_add'),
     path('dropdown-config/group/edit/', view.dropdown_group_edit, name='dropdown_group_edit'),
     path('dropdown-config/group/toggle/', view.dropdown_group_toggle, name='dropdown_group_toggle'),
+    path('dropdown-config/group/delete/', view.dropdown_group_delete, name='dropdown_group_delete'),
     path('dropdown-config/item/add/', view.dropdown_item_add, name='dropdown_item_add'),
     path('dropdown-config/item/edit/', view.dropdown_item_edit, name='dropdown_item_edit'),
     path('dropdown-config/item/delete/', view.dropdown_item_delete, name='dropdown_item_delete'),
