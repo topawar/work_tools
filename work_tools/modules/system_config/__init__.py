@@ -3,9 +3,9 @@ from .views import (
     system_config_view,
     file_path_config_view,
     cleanup_config_view,
-    select_folder_api,
     cleanup_now_view,
-    download_sql
+    download_sql,
+    select_folder_api
 )
 from .dropdown_config import (
     dropdown_config_view,
@@ -42,9 +42,9 @@ __all__ = [
     'system_config_view',
     'file_path_config_view', 
     'cleanup_config_view',
-    'select_folder_api',
     'cleanup_now_view',
     'download_sql',
+    'select_folder_api',
     # Dropdown config
     'dropdown_config_view',
     'dropdown_group_add',

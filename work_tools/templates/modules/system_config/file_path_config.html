@@ -147,9 +147,12 @@
 
         if (btnSelectFolder) {
           btnSelectFolder.addEventListener('click', function() {
+            // 禁用按钮并显示加载状态
             btnSelectFolder.disabled = true;
-            btnSelectFolder.textContent = '打开文件选择器...';
+            var originalText = btnSelectFolder.innerHTML;
+            btnSelectFolder.innerHTML = '📁 选择中...';
 
+            // 调用后端API选择文件夹
             fetch('/system/select-folder/', {
               method: 'POST',
               headers: {
@@ -159,18 +162,31 @@
             })
             .then(function(response) { return response.json(); })
             .then(function(data) {
+              // 恢复按钮状态
               btnSelectFolder.disabled = false;
-              btnSelectFolder.textContent = '📁 选择文件夹';
+              btnSelectFolder.innerHTML = originalText;
 
               if (data.success && data.path) {
+                // 设置输入框的值为选择的文件夹绝对路径
                 pathInput.value = data.path;
+              } else if (data.manual_input_hint || (data.error && data.error.includes('系统不支持文件夹选择功能'))) {
+                // 特殊处理：提示用户手动输入路径
+                var msg = '文件夹选择功能不可用，建议手动输入路径。\n\n错误信息：' + data.error;
+                alert(msg);
+                // 聚焦到输入框方便用户操作
+                pathInput.focus();
+                pathInput.select();
               } else if (data.error && data.error !== '用户取消选择') {
+                // 显示其他错误消息
                 alert('选择文件夹失败：' + data.error);
               }
             })
             .catch(function(error) {
+              // 恢复按钮状态
               btnSelectFolder.disabled = false;
-              btnSelectFolder.textContent = '📁 选择文件夹';
+              btnSelectFolder.innerHTML = originalText;
+              
+              // 显示错误消息
               alert('选择文件夹失败：' + error.message);
             });
           });

@@ -5,6 +5,14 @@ from django.shortcuts import render, redirect
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
 
+try:
+    # 尝试导入可能的文件夹选择库
+    import tkinter as tk
+    from tkinter import filedialog
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
+
 from work_tools.config import get_config, set_config, get_module_names
 from work_tools.navigation import get_sidebar_groups
 
@@ -214,93 +222,25 @@ def cleanup_now_view(request):
         })
 
 
-def select_folder_api(request):
-    """文件夹选择API"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': '仅支持POST请求'})
+def _validate_path(path):
+    """验证路径有效性"""
+    if not path:
+        return {'valid': False, 'error': '路径不能为空', 'warning': ''}
     
-    folder_path = None
+    if not os.path.isabs(path):
+        return {'valid': False, 'error': '请输入有效的绝对路径', 'warning': ''}
     
-    try:
-        import ctypes
-        from ctypes import wintypes
-        
-        shell32 = ctypes.windll.shell32
-        ole32 = ctypes.windll.ole32
-        
-        ole32.CoInitialize(None)
-        
-        class BROWSEINFO(ctypes.Structure):
-            _fields_ = [
-                ("hwndOwner", wintypes.HWND),
-                ("pidlRoot", ctypes.c_void_p),
-                ("pszDisplayName", ctypes.c_wchar_p),
-                ("lpszTitle", ctypes.c_wchar_p),
-                ("ulFlags", ctypes.c_uint),
-                ("lpfn", ctypes.c_void_p),
-                ("lParam", ctypes.c_long),
-                ("iImage", ctypes.c_int),
-            ]
-        
-        BIF_RETURNONLYFSDIRS = 0x0001
-        BIF_NEWDIALOGSTYLE = 0x0040
-        
-        bi = BROWSEINFO()
-        bi.hwndOwner = None
-        bi.pidlRoot = None
-        bi.pszDisplayName = ctypes.create_unicode_buffer(260)
-        bi.lpszTitle = "选择SQL文件输出目录"
-        bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE
-        bi.lpfn = None
-        bi.lParam = 0
-        bi.iImage = 0
-        
-        pidl = shell32.SHBrowseForFolderW(ctypes.byref(bi))
-        
-        if pidl:
-            path_buffer = ctypes.create_unicode_buffer(260)
-            shell32.SHGetPathFromIDListW(pidl, path_buffer)
-            ole32.CoTaskMemFree(pidl)
-            folder_path = path_buffer.value
-        
-        ole32.CoUninitialize()
-        
-    except Exception as e:
-        logger.warning(f"[文件夹选择] Windows原生对话框失败: {e}")
-        
+    if not os.path.exists(path):
         try:
-            import tkinter as tk
-            from tkinter import filedialog
-            
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes('-topmost', True)
-            
-            folder_path = filedialog.askdirectory(
-                title='选择SQL文件输出目录',
-                mustexist=False
-            )
-            
-            root.destroy()
-            
-        except Exception as tk_error:
-            logger.error(f"[文件夹选择] tkinter也失败: {tk_error}")
-            return JsonResponse({
-                'success': False,
-                'error': f'打开文件夹选择对话框失败，请手动输入路径'
-            })
+            os.makedirs(path, exist_ok=True)
+            return {'valid': True, 'error': '', 'warning': '路径不存在，已自动创建'}
+        except Exception as e:
+            return {'valid': False, 'error': f'无法创建目录: {str(e)}', 'warning': ''}
     
-    if folder_path:
-        logger.info(f"[文件夹选择] 用户选择了路径: {folder_path}")
-        return JsonResponse({
-            'success': True,
-            'path': folder_path
-        })
-    else:
-        return JsonResponse({
-            'success': False,
-            'error': '用户取消选择'
-        })
+    if not os.access(path, os.W_OK):
+        return {'valid': False, 'error': '路径无写入权限，请选择其他位置', 'warning': ''}
+    
+    return {'valid': True, 'error': '', 'warning': ''}
 
 
 def download_sql(request, filename):
@@ -314,11 +254,72 @@ def download_sql(request, filename):
         return HttpResponse("文件不存在", status=404)
 
 
+def select_folder_api(request):
+    """
+    文件夹选择API
+    使用系统原生对话框选择文件夹并返回绝对路径
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '仅支持POST请求'})
+    
+    try:
+        # 检查是否可用tkinter
+        if not TKINTER_AVAILABLE:
+            return JsonResponse({
+                'success': False, 
+                'error': '系统不支持文件夹选择功能'
+            })
+        
+        # 创建隐藏的tkinter根窗口
+        root = tk.Tk()
+        root.withdraw()  # 隐藏主窗口
+        root.attributes('-topmost', True)  # 置顶显示
+        
+        # 打开文件夹选择对话框
+        folder_path = filedialog.askdirectory(
+            title='选择SQL文件输出目录',
+            mustexist=False  # 允许选择不存在的目录
+        )
+        
+        # 销毁根窗口
+        root.destroy()
+        
+        # 检查用户是否选择了文件夹
+        if folder_path:
+            # 验证路径
+            validation = _validate_path(folder_path)
+            if not validation['valid']:
+                return JsonResponse({
+                    'success': False,
+                    'error': validation['error']
+                })
+            
+            # 返回成功结果
+            logger.info(f"[文件夹选择] 用户选择了路径: {folder_path}")
+            return JsonResponse({
+                'success': True,
+                'path': os.path.abspath(folder_path)  # 返回绝对路径
+            })
+        else:
+            # 用户取消选择
+            return JsonResponse({
+                'success': False,
+                'error': '用户取消选择'
+            })
+            
+    except Exception as e:
+        logger.error(f"[文件夹选择] 发生错误: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'选择文件夹时发生错误: {str(e)}'
+        })
+
+
 __all__ = [
     'system_config_view',
     'file_path_config_view',
     'cleanup_config_view',
-    'select_folder_api',
     'cleanup_now_view',
-    'download_sql'
+    'download_sql',
+    'select_folder_api'
 ]

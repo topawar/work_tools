@@ -121,6 +121,11 @@ hiddenimports = [
     're',
     'traceback',
     'psutil',
+    
+    # GUI库
+    'tkinter',
+    'tkinter.filedialog',
+    'tkinter.dialog',
 ]
 
 # 排除不需要的模块
@@ -128,7 +133,6 @@ excludes = [
     'pytest',
     'hypothesis',
     'unittest',
-    'tkinter',
     'matplotlib',
     'numpy',
     'scipy',

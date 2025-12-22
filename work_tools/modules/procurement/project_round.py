@@ -148,6 +148,9 @@ def generate_project_round_sql_bulk(records, ops_remark=None):
     生成批量项目轮次修改SQL - 支持SQL合并策略
     """
     cfg = get_config()
+    # 处理 ops_remark
+    ops_remark = parse_ops_remark(ops_remark) if ops_remark else ''
+    
     sql = []
     sql.append("1、执行语句")
 
@@ -174,6 +177,9 @@ def generate_project_round_sql_bulk(records, ops_remark=None):
         if r.get('round_number') is not None:
             round_num = r['round_number'].strip()
             set_parts.append(f"ROUND_NUMBER = '{round_num}'")
+        
+        # 添加 ops_remark 字段
+        set_parts.append(f"OPS_REMARK = '{ops_remark}'")
 
         if set_parts:
             set_clause = ', '.join(set_parts)
@@ -209,11 +215,19 @@ def generate_project_round_sql_bulk(records, ops_remark=None):
             set_parts.append(f"ROUND_NUMBER = '{orig_round}'")
         elif r.get('round_number') is not None:
             set_parts.append("ROUND_NUMBER = '1'")
+        
+        # 回退时将 ops_remark 设置为空字符串
+        set_parts.append("OPS_REMARK = ''")
 
         if set_parts:
             set_clause = ', '.join(set_parts)
             stmt = f"UPDATE cnnc_pr.tprfa01 SET {set_clause} WHERE PURCHASE_SCHEME_NO = '{scheme_no}';"
             sql.append(stmt)
+    
+    # 添加数据库信息
+    sql.append("")
+    sql.append("3、数据库ip：192.168.11.69")
+    sql.append("库名：cnnc_pr")
 
     return sql
 

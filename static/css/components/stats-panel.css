@@ -1,0 +1,68 @@
+/**
+ * Stats Panel Component
+ * 统计面板组件样式 - 用于显示统计数据
+ */
+
+/* ==================== 统计面板基础样式 ==================== */
+.stats-panel {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+  padding: var(--spacing-6);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, #f0f4ff 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-primary-200);
+}
+
+/* ==================== 统计项样式 ==================== */
+.stats-panel__item {
+  text-align: center;
+  min-width: 120px;
+}
+
+.stats-panel__value {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-1);
+  line-height: 1;
+}
+
+.stats-panel__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ==================== 统计项变体 ==================== */
+.stats-panel__item--success .stats-panel__value {
+  color: var(--color-success);
+}
+
+.stats-panel__item--warning .stats-panel__value {
+  color: var(--color-warning);
+}
+
+.stats-panel__item--error .stats-panel__value {
+  color: var(--color-error);
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (max-width: 768px) {
+  .stats-panel {
+    flex-direction: column;
+    gap: var(--spacing-4);
+    text-align: center;
+  }
+  
+  .stats-panel__item {
+    min-width: auto;
+  }
+  
+  .stats-panel__value {
+    font-size: var(--font-size-3xl);
+  }
+}

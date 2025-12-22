@@ -68,7 +68,6 @@ from work_tools.modules.system_config import (
     system_config_view,
     file_path_config_view,
     cleanup_config_view,
-    select_folder_api,
     cleanup_now_view
 )
 ```
@@ -82,7 +81,6 @@ urlpatterns = [
     path('system/config/', system_config_views.system_config_view),
     path('system/file-path/', system_config_views.file_path_config_view),
     path('system/cleanup/', system_config_views.cleanup_config_view),
-    path('system/select-folder/', system_config_views.select_folder_api),
     path('system/cleanup-now/', system_config_views.cleanup_now_view),
 ]
 ```

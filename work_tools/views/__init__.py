@@ -92,8 +92,8 @@ __all__ = [
     'system_config_view',
     'file_path_config_view',
     'cleanup_config_view',
-    'select_folder_api',
     'cleanup_now_view',
+    'select_folder_api',
     'download_sql',
     'download_validation_failure_view',
 

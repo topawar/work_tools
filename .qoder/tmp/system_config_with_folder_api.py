@@ -1,6 +1,5 @@
 """系统配置模块"""
 import os
-import sys
 import logging
 from django.shortcuts import render, redirect
 from django.http import FileResponse, HttpResponse, JsonResponse
@@ -298,17 +297,9 @@ def select_folder_api(request):
     try:
         # 检查是否可用tkinter
         if not TKINTER_AVAILABLE:
-            # 提供更详细的错误信息，帮助用户理解问题
-            error_msg = '系统不支持文件夹选择功能。'
-            if getattr(sys, 'frozen', False):
-                error_msg += '这可能是因为打包时未包含必要的GUI组件。请手动输入文件夹路径。'
-            else:
-                error_msg += '请确保系统已安装Python的tkinter库。'
-            
             return JsonResponse({
                 'success': False, 
-                'error': error_msg,
-                'manual_input_hint': True  # 标记需要手动输入
+                'error': '系统不支持文件夹选择功能'
             })
         
         # 创建隐藏的tkinter根窗口
@@ -350,10 +341,7 @@ def select_folder_api(request):
             
     except Exception as e:
         logger.error(f"[文件夹选择] 发生错误: {str(e)}", exc_info=True)
-        error_msg = f'选择文件夹时发生错误: {str(e)}'
-        if 'display' in str(e).lower() or 'gui' in str(e).lower():
-            error_msg += '。检测到GUI相关错误，建议手动输入文件夹路径。'
         return JsonResponse({
             'success': False,
-            'error': error_msg
+            'error': f'选择文件夹时发生错误: {str(e)}'
         })

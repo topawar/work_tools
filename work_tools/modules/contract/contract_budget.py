@@ -237,8 +237,7 @@ def generate_budget_sql_bulk(records, ops_remark=None):
                 for chunk in chunk_list(bpo_ids, int(cfg.get('MERGE_MAX_IN_SIZE', 500))):
                     inlist = format_in(chunk)
                     sql.append(
-                        f"update TPHCT01 set BUDGETED_AMOUNT='{orig_budget}', OPS_REMARK='' WHERE bpo_id IN ({inlist}) and ALIVE_FLAG='1';"
-                    )
+                        f"update TPHCT01 set BUDGETED_AMOUNT='{orig_budget}', OPS_REMARK='' WHERE bpo_id IN ({inlist}) and ALIVE_FLAG='1';")
     else:
         # 非合并模式
         part_rb = []
@@ -262,8 +261,7 @@ def generate_budget_sql_bulk(records, ops_remark=None):
                 )
             if r.get('contract_bpo_id'):
                 contract_rb.append(
-                    f"update TPHCT01 set BUDGETED_AMOUNT='{r['orig_budget']}', OPS_REMARK='' WHERE bpo_id='{r['contract_bpo_id']}' and ALIVE_FLAG='1';"
-                )
+                    f"update TPHCT01 set BUDGETED_AMOUNT='{r['orig_budget']}', OPS_REMARK='' WHERE bpo_id='{r['contract_bpo_id']}' and ALIVE_FLAG='1';")
 
         if part_rb:
             sql.append("-- PR 回退：tprxj07 / tprxj10 / tprnq02")

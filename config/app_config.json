@@ -19,7 +19,7 @@
     "executor": true,
     "plan_date": true
   },
-  "SQL_OUTPUT_BASE_PATH": "D:/临时文件",
+  "SQL_OUTPUT_BASE_PATH": "D:\\临时文件",
   "SQL_OUTPUT_MODE": "hierarchical",
   "SQL_OUTPUT_DATE_FORMAT": "%Y%m/%d",
   "TEMP_FILE_CLEANUP_ENABLED": true,

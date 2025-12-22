@@ -62,7 +62,7 @@
                             <input type="text" class="form-input" name="sql_output_path" id="sql_output_path"
                                    value="{{ cfg.SQL_OUTPUT_BASE_PATH }}" required 
                                    placeholder="例如: D:\SQL_Output">
-                            <button type="button" class="btn btn-outline" onclick="selectFolder()">
+                            <button type="button" class="btn btn-outline" id="browseButton">
                                 <i class="bi bi-folder2-open"></i>
                                 浏览
                             </button>
@@ -128,27 +128,49 @@
     </div>
 
     <script>
-        function selectFolder() {
-            fetch('/system/select-folder/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.path) {
-                    document.getElementById('sql_output_path').value = data.path;
-                } else if (data.error) {
-                    alert(data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('选择文件夹失败');
-            });
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定浏览按钮点击事件
+            const browseButton = document.getElementById('browseButton');
+            if (browseButton) {
+                browseButton.addEventListener('click', function() {
+                    // 禁用按钮并显示加载状态
+                    browseButton.disabled = true;
+                    const originalText = browseButton.innerHTML;
+                    browseButton.innerHTML = '<i class="bi bi-hourglass-split"></i> 选择中...';
+                    
+                    // 调用后端API选择文件夹
+                    fetch('/system/select-folder/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 恢复按钮状态
+                        browseButton.disabled = false;
+                        browseButton.innerHTML = originalText;
+                        
+                        if (data.success && data.path) {
+                            // 设置输入框的值为选择的文件夹绝对路径
+                            document.getElementById('sql_output_path').value = data.path;
+                        } else if (data.error && data.error !== '用户取消选择') {
+                            // 显示错误消息
+                            alert('选择文件夹失败：' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        // 恢复按钮状态
+                        browseButton.disabled = false;
+                        browseButton.innerHTML = originalText;
+                        
+                        // 显示错误消息
+                        alert('选择文件夹失败：' + error.message);
+                    });
+                });
+            }
+        });
     </script>
 </body>
 </html>
