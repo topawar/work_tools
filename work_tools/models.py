@@ -195,40 +195,6 @@ class ConfigurableField(models.Model):
     )
     is_required = models.BooleanField(default=False, verbose_name="是否必填")
     is_nullable = models.BooleanField(default=True, verbose_name="是否可为空")
-    # 值模式字段（替代旧的必填字段）
-    query_value_mode = models.CharField(
-        max_length=20,
-        choices=[
-            ("required", "必填"),
-            ("nullable_essential", "不必填-必要"),
-            ("nullable_optional", "不必填-不必要"),
-        ],
-        default="required",
-        verbose_name="查询值模式",
-        help_text="必填:值不能为空; 不必填-必要:值为空也生成; 不必填-不必要:值为空不生成",
-    )
-    new_value_mode = models.CharField(
-        max_length=20,
-        choices=[
-            ("required", "必填"),
-            ("nullable_essential", "不必填-必要"),
-            ("nullable_optional", "不必填-不必要"),
-        ],
-        default="required",
-        verbose_name="新值模式",
-        help_text="必填:值不能为空; 不必填-必要:值为空也生成(a=''); 不必填-不必要:值为空不生成",
-    )
-    orig_value_mode = models.CharField(
-        max_length=20,
-        choices=[
-            ("required", "必填"),
-            ("nullable_essential", "不必填-必要"),
-            ("nullable_optional", "不必填-不必要"),
-        ],
-        default="required",
-        verbose_name="原值模式",
-        help_text="必填:值不能为空; 不必填-必要:值为空也生成(a=''); 不必填-不必要:值为空不生成",
-    )
     sql_file_name = models.CharField(
         max_length=100, blank=True, verbose_name="SQL文件名"
     )
